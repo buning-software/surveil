@@ -22,8 +22,8 @@ public sealed class ReloadableCameraProviderTests
         public Task<IReadOnlyList<RtspsStream>> GetRtspsStreamsAsync(string cameraId, CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<RtspsStream>>([]);
 
-        public Task<RtspsStream> CreateRtspsStreamAsync(string cameraId, CancellationToken ct = default) =>
-            Task.FromResult(new RtspsStream("rtsp://stub", "high"));
+        public Task<IReadOnlyList<RtspsStream>> CreateRtspsStreamsAsync(string cameraId, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<RtspsStream>>([new RtspsStream("rtsp://stub", "high")]);
     }
 
     private sealed class StubFactory(VideoProviderType type, bool canCreate = true) : ICameraProviderFactory
@@ -57,7 +57,7 @@ public sealed class ReloadableCameraProviderTests
         var cameras = await provider.GetCamerasAsync();
 
         Assert.IsEmpty(cameras);
-        await Assert.ThrowsAsync<NotSupportedException>(() => provider.CreateRtspsStreamAsync("cam1"));
+        await Assert.ThrowsAsync<NotSupportedException>(() => provider.CreateRtspsStreamsAsync("cam1"));
     }
 
     [TestMethod]

@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
@@ -19,6 +21,23 @@ internal sealed class StubHttpHandler(HttpStatusCode status, string body) : Http
         });
 }
 
+internal sealed class RecordingHttpHandler(Func<HttpRequestMessage, string> respond) : HttpMessageHandler
+{
+    public List<(HttpMethod Method, string? Body)> Requests { get; } = [];
+
+    protected override async Task<HttpResponseMessage> SendAsync(
+        HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        var body = request.Content is null ? null : await request.Content.ReadAsStringAsync(cancellationToken);
+        Requests.Add((request.Method, body));
+        return new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(respond(request), Encoding.UTF8, "application/json"),
+            RequestMessage = new HttpRequestMessage()
+        };
+    }
+}
+
 [TestClass]
 public sealed class UnifiProtectApiClientTests
 {
@@ -27,6 +46,14 @@ public sealed class UnifiProtectApiClientTests
     {
         var http = new HttpClient(new StubHttpHandler(status, body)) { BaseAddress = new Uri("https://host/api/") };
         return new UnifiProtectApiClient(http, reachableHost);
+    }
+
+    private static (UnifiProtectApiClient Client, RecordingHttpHandler Handler) CreateRecordingClient(
+        string getBody, string postBody)
+    {
+        var handler = new RecordingHttpHandler(r => r.Method == HttpMethod.Post ? postBody : getBody);
+        var http = new HttpClient(handler) { BaseAddress = new Uri("https://host/api/") };
+        return (new UnifiProtectApiClient(http), handler);
     }
 
     private static string StreamsJson(
@@ -178,40 +205,85 @@ public sealed class UnifiProtectApiClientTests
     }
 
     [TestMethod]
-    public async Task CreateRtspsStreamAsync_SuccessWithHighUrl_ReturnsBestStream()
+    public async Task CreateRtspsStreamsAsync_SuccessWithHighUrl_ReturnsHighStream()
     {
         var client = CreateClient(StreamsJson(high: "rtsps://host/high"));
 
-        var stream = await client.CreateRtspsStreamAsync("cam1");
+        var streams = await client.CreateRtspsStreamsAsync("cam1");
 
-        Assert.AreEqual("rtsp://host/high", stream.Url);
-        Assert.AreEqual("high", stream.StreamName);
+        Assert.AreEqual("rtsp://host/high", streams[0].Url);
+        Assert.AreEqual("high", streams[0].StreamName);
     }
 
     [TestMethod]
-    public async Task CreateRtspsStreamAsync_AllUrlsNull_ThrowsInvalidOperationException()
+    public async Task CreateRtspsStreamsAsync_AllUrlsNull_ThrowsInvalidOperationException()
     {
         var client = CreateClient(StreamsJson());
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => client.CreateRtspsStreamAsync("cam1"));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => client.CreateRtspsStreamsAsync("cam1"));
     }
 
     [TestMethod]
-    public async Task CreateRtspsStreamAsync_ServerError_ThrowsHttpRequestException()
+    public async Task CreateRtspsStreamsAsync_ServerError_ThrowsHttpRequestException()
     {
         var client = CreateClient("Bad request", HttpStatusCode.BadRequest);
 
-        await Assert.ThrowsAsync<HttpRequestException>(() => client.CreateRtspsStreamAsync("cam1"));
+        await Assert.ThrowsAsync<HttpRequestException>(() => client.CreateRtspsStreamsAsync("cam1"));
     }
 
     [TestMethod]
-    public async Task CreateRtspsStreamAsync_WithCancellationToken_PassesToken()
+    public async Task CreateRtspsStreamsAsync_WithCancellationToken_PassesToken()
     {
         var client = CreateClient(StreamsJson(high: "rtsps://host/high"));
         using var cts = new CancellationTokenSource();
 
-        var stream = await client.CreateRtspsStreamAsync("cam1", cts.Token);
+        var streams = await client.CreateRtspsStreamsAsync("cam1", cts.Token);
 
-        Assert.IsNotNull(stream);
+        Assert.IsNotEmpty(streams);
+    }
+
+    [TestMethod]
+    public async Task GetRtspsStreamsAsync_AllQualities_ReturnsBestFirst()
+    {
+        var client = CreateClient(StreamsJson(high: "rtsps://host/high", medium: "rtsps://host/medium", low: "rtsps://host/low"));
+
+        var streams = await client.GetRtspsStreamsAsync("cam1");
+
+        CollectionAssert.AreEqual(new[] { "high", "medium", "low" }, streams.Select(s => s.StreamName).ToArray());
+    }
+
+    [TestMethod]
+    public async Task GetRtspsStreamsAsync_PackageAlongsideMainLens_ExcludesPackage()
+    {
+        var client = CreateClient(StreamsJson(high: "rtsps://host/high", low: "rtsps://host/low", package: "rtsps://host/pkg"));
+
+        var streams = await client.GetRtspsStreamsAsync("cam1");
+
+        CollectionAssert.AreEqual(new[] { "high", "low" }, streams.Select(s => s.StreamName).ToArray());
+    }
+
+    [TestMethod]
+    public async Task CreateRtspsStreamsAsync_PostsHighAndLowPlusExistingQualities()
+    {
+        var (client, handler) = CreateRecordingClient(
+            getBody: StreamsJson(medium: "rtsps://host/medium"),
+            postBody: StreamsJson(high: "rtsps://host/high", medium: "rtsps://host/medium", low: "rtsps://host/low"));
+
+        await client.CreateRtspsStreamsAsync("cam1");
+
+        var post = handler.Requests.Single(r => r.Method == HttpMethod.Post);
+        Assert.AreEqual("""{"qualities":["medium","high","low"]}""", post.Body);
+    }
+
+    [TestMethod]
+    public async Task CreateRtspsStreamsAsync_ReturnsEveryCreatedQualityBestFirst()
+    {
+        var (client, _) = CreateRecordingClient(
+            getBody: StreamsJson(high: "rtsps://host/high"),
+            postBody: StreamsJson(high: "rtsps://host/high", low: "rtsps://host/low"));
+
+        var streams = await client.CreateRtspsStreamsAsync("cam1");
+
+        CollectionAssert.AreEqual(new[] { "high", "low" }, streams.Select(s => s.StreamName).ToArray());
     }
 }

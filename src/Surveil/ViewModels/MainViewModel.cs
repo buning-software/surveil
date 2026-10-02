@@ -4,11 +4,14 @@ using Microsoft.UI.Dispatching;
 using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Surveil.Application.Ports;
 using Surveil.Application.Settings;
 using Surveil.Domain.Cameras;
+using Surveil.Domain.Events;
+using Surveil.Services;
 using Surveil.Services.Interfaces;
 using Surveil.Views;
 
@@ -20,6 +23,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private readonly ICameraProvider _apiClient;
     private readonly ICameraEventStream _eventStream;
     private readonly IDesktopNotifier _notifier;
+    private readonly ISnapshotGrabber _snapshotGrabber;
+    private readonly ICameraStreamCatalog _streamCatalog;
     private readonly ISettingsChangeNotifier _settingsNotifier;
     private readonly DispatcherQueue _dispatcherQueue;
     private readonly CancellationTokenSource _cts = new();
@@ -37,6 +42,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         ICameraProvider apiClient,
         ICameraEventStream eventStream,
         IDesktopNotifier notifier,
+        ISnapshotGrabber snapshotGrabber,
+        ICameraStreamCatalog streamCatalog,
         ISettingsChangeNotifier settingsNotifier,
         DispatcherQueue dispatcherQueue)
     {
@@ -44,6 +51,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _apiClient = apiClient;
         _eventStream = eventStream;
         _notifier = notifier;
+        _snapshotGrabber = snapshotGrabber;
+        _streamCatalog = streamCatalog;
         _settingsNotifier = settingsNotifier;
         _dispatcherQueue = dispatcherQueue;
 
@@ -64,6 +73,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         try
         {
             var cameras = await _apiClient.GetCamerasAsync(ct);
+            _streamCatalog.Prefetch(cameras.Select(c => c.Id));
             _dispatcherQueue.TryEnqueue(() =>
             {
                 foreach (var camera in cameras)
@@ -84,12 +94,32 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         try
         {
             await foreach (var @event in _eventStream.SubscribeAsync(ct))
-                _notifier.Notify(@event, SelectedCamera?.Name ?? "Unknown Camera");
+            {
+                var camera = Cameras.FirstOrDefault(c => c.Id == @event.DeviceId) ?? SelectedCamera;
+                var needsSnapshot = camera is not null && !_mainWindow.IsStreaming(camera.Id);
+                _ = NotifyAsync(@event, camera, needsSnapshot, ct);
+            }
         }
         catch (OperationCanceledException) { }
         catch (Exception ex)
         {
             Debug.WriteLine($"[MainViewModel] Event stream error: {ex.Message}");
+        }
+    }
+
+    private async Task NotifyAsync(CameraEvent cameraEvent, Camera? camera, bool needsSnapshot, CancellationToken ct)
+    {
+        try
+        {
+            if (needsSnapshot && camera is not null)
+                await _snapshotGrabber.GrabAsync(camera.Id, ct);
+
+            _notifier.Notify(cameraEvent, camera?.Name ?? "Unknown Camera");
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[MainViewModel] Notification failed: {ex.Message}");
         }
     }
 

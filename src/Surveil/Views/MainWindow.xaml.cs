@@ -8,6 +8,7 @@ using System.Collections.Specialized;
 using System.Runtime.InteropServices;
 using Surveil.Application.Ports;
 using Surveil.Domain.Cameras;
+using Surveil.Services;
 using Surveil.Services.Interfaces;
 using Surveil.ViewModels;
 using Windows.Graphics;
@@ -28,6 +29,8 @@ public sealed partial class MainWindow
         ICameraProvider apiClient,
         ICameraEventStream eventStream,
         IDesktopNotifier notifier,
+        ISnapshotGrabber snapshotGrabber,
+        ICameraStreamCatalog streamCatalog,
         ISettingsChangeNotifier settingsNotifier)
     {
         InitializeComponent();
@@ -42,6 +45,8 @@ public sealed partial class MainWindow
             apiClient,
             eventStream,
             notifier,
+            snapshotGrabber,
+            streamCatalog,
             settingsNotifier,
             DispatcherQueue.GetForCurrentThread());
         RootGrid.DataContext = ViewModel;
@@ -49,6 +54,7 @@ public sealed partial class MainWindow
         ViewModel.Cameras.CollectionChanged += OnCamerasChanged;
 
         Closed += OnWindowClosed;
+        AppWindow.Changed += OnAppWindowChanged;
         ExitMenuItem.Command = ViewModel.ExitCommand;
 
         TaskBarIcon.ForceCreate();
@@ -66,7 +72,12 @@ public sealed partial class MainWindow
 
         Activate();
         SetForegroundWindow(handle);
+
+        UpdateStreamState();
     }
+
+    public bool IsStreaming(string cameraId) =>
+        CurrentCameraViewModel?.IsStreaming(cameraId) ?? false;
 
     public void ShowFromBackground() => DispatcherQueue.TryEnqueue(BringToFront);
 
@@ -131,7 +142,28 @@ public sealed partial class MainWindow
 
         args.Handled = true;
         this.Hide();
+
+        UpdateStreamState();
     }
+
+    private void OnAppWindowChanged(AppWindow sender, AppWindowChangedEventArgs args)
+    {
+        if (args.DidVisibilityChange || args.DidPresenterChange)
+            UpdateStreamState();
+    }
+
+    private void UpdateStreamState()
+    {
+        if (CurrentCameraViewModel is not { } viewModel) return;
+
+        var minimized = AppWindow.Presenter is OverlappedPresenter { State: OverlappedPresenterState.Minimized };
+        if (AppWindow.IsVisible && !minimized)
+            viewModel.Resume();
+        else
+            viewModel.Pause();
+    }
+
+    private CameraViewModel? CurrentCameraViewModel => (ContentFrame.Content as CameraView)?.ViewModel;
 
     [DllImport("user32.dll")]
     private static extern bool SetForegroundWindow(nint hWnd);

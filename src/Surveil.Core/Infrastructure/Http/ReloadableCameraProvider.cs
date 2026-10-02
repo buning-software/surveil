@@ -48,8 +48,8 @@ public sealed class ReloadableCameraProvider : ICameraProvider
     public Task<IReadOnlyList<RtspsStream>> GetRtspsStreamsAsync(string cameraId, CancellationToken ct = default) =>
         Current.GetRtspsStreamsAsync(cameraId, ct);
 
-    public Task<RtspsStream> CreateRtspsStreamAsync(string cameraId, CancellationToken ct = default) =>
-        Current.CreateRtspsStreamAsync(cameraId, ct);
+    public Task<IReadOnlyList<RtspsStream>> CreateRtspsStreamsAsync(string cameraId, CancellationToken ct = default) =>
+        Current.CreateRtspsStreamsAsync(cameraId, ct);
 
     private ICameraProvider Current
     {

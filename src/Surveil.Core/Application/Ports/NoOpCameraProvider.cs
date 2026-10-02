@@ -14,6 +14,6 @@ public sealed class NoOpCameraProvider : ICameraProvider
     public Task<IReadOnlyList<RtspsStream>> GetRtspsStreamsAsync(string cameraId, CancellationToken ct = default) =>
         Task.FromResult<IReadOnlyList<RtspsStream>>([]);
 
-    public Task<RtspsStream> CreateRtspsStreamAsync(string cameraId, CancellationToken ct = default) =>
+    public Task<IReadOnlyList<RtspsStream>> CreateRtspsStreamsAsync(string cameraId, CancellationToken ct = default) =>
         throw new NotSupportedException("No camera provider is configured.");
 }

@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Net.Http;
+using System.Net.Http.Json;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,6 +17,8 @@ public sealed class UnifiProtectApiClient : ICameraProvider, IDisposable
 {
     private const int BodyPreviewLength = 500;
     private const int ErrorBodyPreviewLength = 300;
+
+    private static readonly string[] RequiredQualities = ["high", "low"];
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -66,21 +70,30 @@ public sealed class UnifiProtectApiClient : ICameraProvider, IDisposable
 
     public async Task<IReadOnlyList<RtspsStream>> GetRtspsStreamsAsync(string cameraId, CancellationToken ct = default)
     {
-        var dto = await GetJsonAsync<RtspsStreamDto>($"v1/cameras/{cameraId}/rtsps-stream", ct);
-        return dto?.BestStream() is { } best
-            ? [new RtspsStream(NormalizeForLibVlc(best.Url), best.Quality)]
-            : [];
+        var dto = await GetJsonAsync<RtspsStreamDto>(RtspsStreamPath(cameraId), ct);
+        return ToStreams(dto);
     }
 
-    public async Task<RtspsStream> CreateRtspsStreamAsync(string cameraId, CancellationToken ct = default)
+    public async Task<IReadOnlyList<RtspsStream>> CreateRtspsStreamsAsync(string cameraId, CancellationToken ct = default)
     {
-        var response = await _http.PostAsync($"v1/cameras/{cameraId}/rtsps-stream", content: null, ct);
+        var existing = await GetJsonAsync<RtspsStreamDto>(RtspsStreamPath(cameraId), ct);
+        var qualities = (existing?.Qualities() ?? []).Union(RequiredQualities).ToArray();
+
+        var request = JsonContent.Create(new CreateRtspsStreamRequest(qualities), options: JsonOptions);
+        var response = await _http.PostAsync(RtspsStreamPath(cameraId), request, ct);
         await EnsureSuccessAsync(response, ct);
         var dto = await DeserializeAsync<RtspsStreamDto>(response, ct);
-        var best = dto?.BestStream()
-                   ?? throw new InvalidOperationException("No usable RTSPS URL in CreateRtspsStream response.");
-        return new RtspsStream(NormalizeForLibVlc(best.Url), best.Quality);
+
+        var streams = ToStreams(dto);
+        return streams.Count > 0
+            ? streams
+            : throw new InvalidOperationException("No usable RTSPS URL in CreateRtspsStream response.");
     }
+
+    private static string RtspsStreamPath(string cameraId) => $"v1/cameras/{cameraId}/rtsps-stream";
+
+    private List<RtspsStream> ToStreams(RtspsStreamDto? dto) =>
+        dto?.Streams().Select(s => new RtspsStream(NormalizeForLibVlc(s.Url), s.Quality)).ToList() ?? [];
 
     private string NormalizeForLibVlc(string url)
     {
@@ -147,19 +160,28 @@ public sealed class UnifiProtectApiClient : ICameraProvider, IDisposable
 
     private sealed record CameraDto(string Id, string Name, string State);
 
+    private sealed record CreateRtspsStreamRequest(string[] Qualities);
+
     private sealed record RtspsStreamDto(
         string? High,
         string? Medium,
         string? Low,
         string? Package)
     {
-        public (string Url, string Quality)? BestStream()
+        public IEnumerable<string> Qualities() => All().Select(s => s.Quality);
+
+        public IReadOnlyList<(string Url, string Quality)> Streams()
         {
-            if (High is not null) return (High, "high");
-            if (Medium is not null) return (Medium, "medium");
-            if (Low is not null) return (Low, "low");
-            if (Package is not null) return (Package, "package");
-            return null;
+            var main = All().Where(s => s.Quality != "package").ToList();
+            return main.Count > 0 ? main : All().ToList();
+        }
+
+        private IEnumerable<(string Url, string Quality)> All()
+        {
+            if (High is not null) yield return (High, "high");
+            if (Medium is not null) yield return (Medium, "medium");
+            if (Low is not null) yield return (Low, "low");
+            if (Package is not null) yield return (Package, "package");
         }
     }
 }
