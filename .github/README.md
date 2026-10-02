@@ -11,9 +11,9 @@
   <p align="center">
     A lightweight Windows desktop application to receive real-time doorbell notifications and view camera feeds from your Unifi Protect deployment.
     <br />
-    <a href="https://github.com/JelleBuning/unifi-protect-client/issues">Report Bug</a>
+    <a href="https://github.com/BuningSoftware/surveil/issues">Report Bug</a>
     ·
-    <a href="https://github.com/JelleBuning/unifi-protect-client/issues">Request Feature</a>
+    <a href="https://github.com/BuningSoftware/surveil/issues">Request Feature</a>
   </p>
 </div>
 
@@ -62,7 +62,7 @@ Setting up Surveil on your machine is straightforward.
 
 1. Download the latest `Surveil_<version>_<platform>.msix` for your architecture (x86, x64, or
    ARM64) and the accompanying `Surveil.cer` from the
-   [Releases](https://github.com/JelleBuning/unifi-protect-client/releases) page.
+   [Releases](https://github.com/BuningSoftware/surveil/releases) page.
 2. Trust the publisher certificate (one-time step, since Surveil is self-signed rather than
    issued by a public CA): open an elevated PowerShell/Command Prompt and run
    ```
@@ -91,13 +91,13 @@ Distributed under the GNU Affero General Public License v3.0 License. See `LICEN
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-[contributors-shield]: https://img.shields.io/github/contributors/JelleBuning/unifi-protect-client.svg?style=for-the-badge
-[contributors-url]: https://github.com/JelleBuning/unifi-protect-client/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/JelleBuning/unifi-protect-client.svg?style=for-the-badge
-[forks-url]: https://github.com/JelleBuning/unifi-protect-client/network/members
-[stars-shield]: https://img.shields.io/github/stars/JelleBuning/unifi-protect-client.svg?style=for-the-badge
-[stars-url]: https://github.com/JelleBuning/unifi-protect-client/stargazers
-[issues-shield]: https://img.shields.io/github/issues/JelleBuning/unifi-protect-client.svg?style=for-the-badge
-[issues-url]: https://github.com/JelleBuning/unifi-protect-client/issues
-[license-shield]: https://img.shields.io/github/license/JelleBuning/unifi-protect-client.svg?style=for-the-badge
-[license-url]: https://github.com/JelleBuning/unifi-protect-client/blob/master/LICENSE
+[contributors-shield]: https://img.shields.io/github/contributors/BuningSoftware/surveil.svg?style=for-the-badge
+[contributors-url]: https://github.com/BuningSoftware/surveil/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/BuningSoftware/surveil.svg?style=for-the-badge
+[forks-url]: https://github.com/BuningSoftware/surveil/network/members
+[stars-shield]: https://img.shields.io/github/stars/BuningSoftware/surveil.svg?style=for-the-badge
+[stars-url]: https://github.com/BuningSoftware/surveil/stargazers
+[issues-shield]: https://img.shields.io/github/issues/BuningSoftware/surveil.svg?style=for-the-badge
+[issues-url]: https://github.com/BuningSoftware/surveil/issues
+[license-shield]: https://img.shields.io/github/license/BuningSoftware/surveil.svg?style=for-the-badge
+[license-url]: https://github.com/BuningSoftware/surveil/blob/main/LICENSE
