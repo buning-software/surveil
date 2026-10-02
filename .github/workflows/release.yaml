@@ -34,7 +34,11 @@ jobs:
         shell: pwsh
         run: |
           $tag = "${{ github.ref_name }}"
-          $displayVersion = $tag.TrimStart('v')
+          $displayVersion = $tag.TrimStart('v', 'V')
+          if ($displayVersion -notmatch '^\d+\.\d+\.\d+$') {
+            Write-Error "Release tag '$tag' must look like v1.2.3 (got '$displayVersion' after stripping the prefix)."
+            exit 1
+          }
           $manifestVersion = $displayVersion + '.0'
           "DISPLAY_VERSION=$displayVersion" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           "VERSION=$manifestVersion" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
