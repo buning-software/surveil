@@ -64,6 +64,9 @@ public sealed class SnapshotService : IDisposable
 
     public void Dispose() { }
 
+    public Task SaveNowAsync(int width, int height, byte[] pixels) =>
+        _enabled ? SaveAsync(width, height, pixels) : Task.CompletedTask;
+
     internal async Task SaveAsync(int width, int height, byte[] pixels)
     {
         await SaveJpegAsync(_snapshotPath, width, height, pixels);

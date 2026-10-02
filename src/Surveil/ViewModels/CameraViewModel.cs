@@ -7,7 +7,6 @@ using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading;
 using System.Threading.Tasks;
-using Surveil.Application.Ports;
 using Surveil.Application.Settings;
 using Surveil.Domain.Cameras;
 using Surveil.Services;
@@ -16,13 +15,15 @@ namespace Surveil.ViewModels;
 
 public sealed class CameraViewModel : ObservableObject, IDisposable
 {
-    private readonly ICameraProvider _apiClient;
+    private readonly Camera _camera;
+    private readonly ICameraStreamCatalog _streamCatalog;
     private readonly DispatcherQueue _dispatcherQueue;
     private readonly SnapshotService _snapshotService;
     private readonly CancellationTokenSource _cts = new();
 
     private bool _updatePending;
-    private RtspVideoPlayer? _player;
+    private bool _paused;
+    private ProgressiveVideoPlayer? _player;
 
     public WriteableBitmap? VideoSource
     {
@@ -38,11 +39,12 @@ public sealed class CameraViewModel : ObservableObject, IDisposable
 
     public CameraViewModel(
         Camera camera,
-        ICameraProvider apiClient,
+        ICameraStreamCatalog streamCatalog,
         SnapshotOptions snapshot,
         DispatcherQueue dispatcherQueue)
     {
-        _apiClient = apiClient;
+        _camera = camera;
+        _streamCatalog = streamCatalog;
         _dispatcherQueue = dispatcherQueue;
 
         _snapshotService = new SnapshotService(snapshot.Path);
@@ -56,13 +58,13 @@ public sealed class CameraViewModel : ObservableObject, IDisposable
         {
             UpdateStatus($"Connecting to {camera.Name}...");
 
-            var streams = await _apiClient.GetRtspsStreamsAsync(camera.Id, ct);
-            var stream = streams.FirstOrDefault()
-                         ?? await _apiClient.CreateRtspsStreamAsync(camera.Id, ct);
+            var streams = await _streamCatalog.GetStreamsAsync(camera.Id, ct);
 
-            _player = new RtspVideoPlayer(stream.Url);
+            _player = new ProgressiveVideoPlayer(streams.Select(s => s.Url).ToList());
             _player.FrameReady += OnFrameReady;
             _player.StatusChanged += OnStatusChanged;
+
+            if (_paused) return;
             await Task.Run(_player.Start, ct);
         }
         catch (OperationCanceledException) { }
@@ -71,6 +73,26 @@ public sealed class CameraViewModel : ObservableObject, IDisposable
             Debug.WriteLine($"[CameraViewModel] Stream start failed: {ex.Message}");
             UpdateStatus($"Error: {ex.Message}");
         }
+    }
+
+    public bool IsStreaming(string cameraId) => !_paused && _camera.Id == cameraId;
+
+    public void Pause()
+    {
+        if (_paused) return;
+        _paused = true;
+
+        if (_player is { } player)
+            _ = Task.Run(player.Stop);
+    }
+
+    public void Resume()
+    {
+        if (!_paused) return;
+        _paused = false;
+
+        if (_player is { } player)
+            _ = Task.Run(player.Start);
     }
 
     private void OnStatusChanged(object? sender, string message) => UpdateStatus(message);

@@ -23,6 +23,8 @@ public sealed class RtspVideoPlayer : IDisposable
     public event EventHandler<VideoFrame>? FrameReady;
     public event EventHandler<string>? StatusChanged;
 
+    public static void WarmUp() => DefaultVlcPlayerFactory.WarmUp();
+
     public RtspVideoPlayer(string url)
         : this(url, new DefaultVlcPlayerFactory()) { }
 
