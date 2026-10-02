@@ -9,7 +9,7 @@
 <div align="center">
   <h3 align="center">Surveil</h3>
   <p align="center">
-    A lightweight Windows desktop application to receive real-time doorbell notifications and view camera feeds from your Unifi Protect deployment.
+    A lightweight Windows desktop application for real-time doorbell notifications and live camera feeds from your camera system. UniFi Protect is supported today, with more providers planned.
     <br />
     <a href="https://github.com/BuningSoftware/surveil/issues">Report Bug</a>
     ·
@@ -24,6 +24,7 @@
       <a href="#about-the-project">About The Project</a>
       <ul>
         <li><a href="#features">Features</a></li>
+        <li><a href="#supported-providers">Supported Providers</a></li>
         <li><a href="#built-with">Built With</a></li>
       </ul>
     </li>
@@ -40,18 +41,29 @@
 
 ## About The Project
 
-Many Unifi Protect users find it difficult to keep track of doorbell activity while working on a PC. This project provides a dedicated Windows client that sits in your tray or on your desktop, ensuring you never miss a visitor. It bridges the gap between your Ubiquiti ecosystem and your primary workstation.
+It's easy to miss doorbell activity while you're working on a PC. Surveil is a dedicated Windows client that sits on your desktop and makes sure you never miss a visitor. It connects your camera system to your workstation.
+
+Surveil connects to camera systems through **providers**. Each provider implements the same set of capabilities: camera discovery, live video and event notifications. That lets the app work with different camera and NVR ecosystems. UniFi Protect is the first provider, and support for more is planned.
 
 ### Features
 
-* **Real-time Doorbell Alerts:** Receive instant Windows native notifications when someone rings your Unifi Doorbell.
-* **Live Camera Feed:** Quickly open and view high-quality streams from your Protect cameras directly on your desktop.
+* **Real-time Doorbell Alerts:** Receive instant native Windows notifications when someone rings your doorbell.
+* **Live Camera Feed:** Quickly open and view high-quality live streams from your cameras directly on your desktop.
 * **Lightweight Performance:** Designed to run in the background with minimal CPU and RAM impact.
-* **Easy Integration:** Connects securely to your Unifi Console (UDM Pro, UNVR, etc.) using standard credentials.
+* **Provider-based:** Choose your camera provider in Settings, and changes apply without restarting the app.
+
+### Supported Providers
+
+| Provider | Status |
+| --- | --- |
+| [UniFi Protect](https://ui.com/camera-security) (UDM Pro, UNVR, Cloud Key, etc.) | ✅ Supported |
+| Other cameras / NVRs | 🚧 Planned. [Request a provider](https://github.com/BuningSoftware/surveil/issues) |
 
 ### Built With
 
 * [.NET](https://dotnet.microsoft.com/en-us/)
+* [WinUI 3 / Windows App SDK](https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/)
+* [LibVLCSharp](https://github.com/videolan/libvlcsharp)
 
 
 ## Getting Started
