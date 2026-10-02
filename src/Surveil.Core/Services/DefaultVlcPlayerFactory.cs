@@ -9,10 +9,12 @@ namespace Surveil.Services;
 [ExcludeFromCodeCoverage]
 internal sealed class DefaultVlcPlayerFactory : IVlcPlayerFactory
 {
-    private static readonly LibVLC Shared = CreateShared();
+    private static readonly Lazy<LibVLC> Shared = new(CreateShared);
+
+    public static void WarmUp() => _ = Shared.Value;
 
     public IVlcPlayerHandle Create(string url, Action<string> onError) =>
-        new VlcPlayerHandle(Shared, url, onError);
+        new VlcPlayerHandle(Shared.Value, url, onError);
 
     private static LibVLC CreateShared()
     {

@@ -1,16 +1,16 @@
 using CommunityToolkit.Mvvm.DependencyInjection;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
-using Surveil.Application.Ports;
 using Surveil.Application.Settings;
 using Surveil.Domain.Cameras;
+using Surveil.Services;
 using Surveil.ViewModels;
 
 namespace Surveil.Views;
 
 public sealed partial class CameraView : Page
 {
-    private CameraViewModel? _viewModel;
+    internal CameraViewModel? ViewModel { get; private set; }
 
     public CameraView()
     {
@@ -23,18 +23,18 @@ public sealed partial class CameraView : Page
 
         if (e.Parameter is not Camera camera) return;
 
-        var apiClient = Ioc.Default.GetRequiredService<ICameraProvider>();
+        var streamCatalog = Ioc.Default.GetRequiredService<ICameraStreamCatalog>();
         var snapshot = Ioc.Default.GetRequiredService<SnapshotOptions>();
 
-        _viewModel = new CameraViewModel(camera, apiClient, snapshot, DispatcherQueue);
-        DataContext = _viewModel;
+        ViewModel = new CameraViewModel(camera, streamCatalog, snapshot, DispatcherQueue);
+        DataContext = ViewModel;
     }
 
     protected override void OnNavigatedFrom(NavigationEventArgs e)
     {
         base.OnNavigatedFrom(e);
 
-        _viewModel?.Dispose();
-        _viewModel = null;
+        ViewModel?.Dispose();
+        ViewModel = null;
     }
 }

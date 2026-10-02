@@ -54,8 +54,7 @@ internal sealed class VlcPlayerHandle : IVlcPlayerHandle
 
         _media = new Media(libVlc, new Uri(url));
         _media.AddOption(":rtsp-tcp");
-        _media.AddOption(":live-caching=300");
-        _media.AddOption(":network-caching=1000");
+        _media.AddOption(":network-caching=300");
         _media.AddOption(":clock-jitter=0");
         _media.AddOption(":clock-synchro=0");
         _media.AddOption(":no-audio");

@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Surveil.Services;
 
@@ -123,6 +124,18 @@ public sealed class SnapshotServiceTests
 
         service.CaptureFrame(4, 4, pixels);
         service.CaptureFrame(4, 4, pixels);
+    }
+
+    [TestMethod]
+    public async Task SaveNowAsync_WritesSnapshotAndHero()
+    {
+        var snapshotPath = TempPath("snap.jpg");
+        using var service = new SnapshotService(snapshotPath);
+
+        await service.SaveNowAsync(4, 4, BgraPixels(4, 4));
+
+        Assert.IsTrue(File.Exists(snapshotPath));
+        Assert.IsTrue(File.Exists(SnapshotService.GetHeroPath(snapshotPath)));
     }
 
     [TestMethod]

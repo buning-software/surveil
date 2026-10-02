@@ -31,7 +31,7 @@ public sealed partial class App
     private MainWindow? _mainWindow;
     private bool _isShowingErrorDialog;
 
-    protected override async void OnLaunched(LaunchActivatedEventArgs _)
+    protected override async void OnLaunched(LaunchActivatedEventArgs args)
     {
         try
         {
@@ -52,6 +52,8 @@ public sealed partial class App
             var provider = services.BuildServiceProvider();
 
             Ioc.Default.ConfigureServices(provider);
+
+            _ = Task.Run(RtspVideoPlayer.WarmUp);
 
             _mainWindow = provider.GetRequiredService<MainWindow>();
 
@@ -91,6 +93,8 @@ public sealed partial class App
         services.AddSingleton<ICameraProvider, ReloadableCameraProvider>();
         services.AddSingleton<ICameraEventStream, ProtectEventStream>();
         services.AddTransient<IDesktopNotifier, DesktopNotifier>();
+        services.AddSingleton<ICameraStreamCatalog, CameraStreamCatalog>();
+        services.AddSingleton<ISnapshotGrabber, SnapshotGrabber>();
         services.AddTransient<SettingsViewModel>();
 
         services.AddSingleton<MainWindow>();
