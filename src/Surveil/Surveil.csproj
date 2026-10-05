@@ -11,6 +11,7 @@
 		<UseWinUI>true</UseWinUI>
 		<EnableMsixTooling>true</EnableMsixTooling>
 		<Nullable>enable</Nullable>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<HasPackageAndPublishMenuSuites>true</HasPackageAndPublishMenuSuites>
 		<WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
 		<PackageCertificateThumbprint Condition="'$(PackageCertificateKeyFile)' == ''">14388DA69AEF54A81F72B91ACEB9AB18DE735978</PackageCertificateThumbprint>

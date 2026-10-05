@@ -1,70 +1,64 @@
 using System.Collections.Generic;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NUnit.Framework;
 using Surveil.Application.Ports;
 
 namespace Surveil.Core.Tests.Application;
 
-[TestClass]
+[TestFixture]
 public sealed class StartupTaskStatusExtensionsTests
 {
-    [TestMethod]
-    [DataRow(StartupTaskStatus.Enabled)]
-    [DataRow(StartupTaskStatus.EnabledByPolicy)]
+    [TestCase(StartupTaskStatus.Enabled)]
+    [TestCase(StartupTaskStatus.EnabledByPolicy)]
     public void IsEnabled_ForAnEnabledState_IsTrue(StartupTaskStatus status)
     {
-        Assert.IsTrue(status.IsEnabled());
+        Assert.That(status.IsEnabled(), Is.True);
     }
 
-    [TestMethod]
-    [DataRow(StartupTaskStatus.Disabled)]
-    [DataRow(StartupTaskStatus.DisabledByUser)]
-    [DataRow(StartupTaskStatus.DisabledByPolicy)]
-    [DataRow(StartupTaskStatus.Unavailable)]
+    [TestCase(StartupTaskStatus.Disabled)]
+    [TestCase(StartupTaskStatus.DisabledByUser)]
+    [TestCase(StartupTaskStatus.DisabledByPolicy)]
+    [TestCase(StartupTaskStatus.Unavailable)]
     public void IsEnabled_ForEveryOtherState_IsFalse(StartupTaskStatus status)
     {
-        Assert.IsFalse(status.IsEnabled());
+        Assert.That(status.IsEnabled(), Is.False);
     }
 
-    [TestMethod]
-    [DataRow(StartupTaskStatus.Enabled)]
-    [DataRow(StartupTaskStatus.Disabled)]
+    [TestCase(StartupTaskStatus.Enabled)]
+    [TestCase(StartupTaskStatus.Disabled)]
     public void CanUserChange_WhenWindowsLeavesTheDecisionToTheApp_IsTrue(StartupTaskStatus status)
     {
-        Assert.IsTrue(status.CanUserChange());
+        Assert.That(status.CanUserChange(), Is.True);
     }
 
-    [TestMethod]
-    [DataRow(StartupTaskStatus.DisabledByUser)]
-    [DataRow(StartupTaskStatus.DisabledByPolicy)]
-    [DataRow(StartupTaskStatus.EnabledByPolicy)]
-    [DataRow(StartupTaskStatus.Unavailable)]
+    [TestCase(StartupTaskStatus.DisabledByUser)]
+    [TestCase(StartupTaskStatus.DisabledByPolicy)]
+    [TestCase(StartupTaskStatus.EnabledByPolicy)]
+    [TestCase(StartupTaskStatus.Unavailable)]
     public void CanUserChange_WhenTheDecisionIsTakenElsewhere_IsFalse(StartupTaskStatus status)
     {
-        Assert.IsFalse(status.CanUserChange());
+        Assert.That(status.CanUserChange(), Is.False);
     }
 
-    [TestMethod]
-    [DataRow(StartupTaskStatus.Enabled)]
-    [DataRow(StartupTaskStatus.Disabled)]
+    [TestCase(StartupTaskStatus.Enabled)]
+    [TestCase(StartupTaskStatus.Disabled)]
     public void GetRestrictionDescription_WhenTheSettingIsChangeable_IsNull(StartupTaskStatus status)
     {
-        Assert.IsNull(status.GetRestrictionDescription());
+        Assert.That(status.GetRestrictionDescription(), Is.Null);
     }
 
-    [TestMethod]
-    [DataRow(StartupTaskStatus.DisabledByUser)]
-    [DataRow(StartupTaskStatus.DisabledByPolicy)]
-    [DataRow(StartupTaskStatus.EnabledByPolicy)]
-    [DataRow(StartupTaskStatus.Unavailable)]
+    [TestCase(StartupTaskStatus.DisabledByUser)]
+    [TestCase(StartupTaskStatus.DisabledByPolicy)]
+    [TestCase(StartupTaskStatus.EnabledByPolicy)]
+    [TestCase(StartupTaskStatus.Unavailable)]
     public void GetRestrictionDescription_WhenTheSettingIsLocked_ExplainsWhy(StartupTaskStatus status)
     {
         var description = status.GetRestrictionDescription();
 
-        Assert.IsNotNull(description);
-        Assert.IsFalse(string.IsNullOrWhiteSpace(description));
+        Assert.That(description, Is.Not.Null);
+        Assert.That(string.IsNullOrWhiteSpace(description), Is.False);
     }
 
-    [TestMethod]
+    [Test]
     public void GetRestrictionDescription_ForEveryLockedStatus_IsDistinct()
     {
         StartupTaskStatus[] locked =
@@ -81,8 +75,8 @@ public sealed class StartupTaskStatusExtensionsTests
         {
             var description = status.GetRestrictionDescription();
 
-            Assert.IsNotNull(description);
-            Assert.IsTrue(descriptions.Add(description), $"{status} reuses another status' description.");
+            Assert.That(description, Is.Not.Null);
+            Assert.That(descriptions.Add(description), Is.True, $"{status} reuses another status' description.");
         }
     }
 }

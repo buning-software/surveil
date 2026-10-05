@@ -1,4 +1,3 @@
-using System;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -20,12 +19,10 @@ public sealed class JsonAppSettingsRepository : IAppSettingsRepository
 
     private readonly string _filePath;
 
-    public JsonAppSettingsRepository()
+    public JsonAppSettingsRepository(string directory)
     {
-        var appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        var dir = Path.Combine(appData, "Surveil");
-        Directory.CreateDirectory(dir);
-        _filePath = Path.Combine(dir, "settings.json");
+        Directory.CreateDirectory(directory);
+        _filePath = Path.Combine(directory, "settings.json");
     }
 
     public async Task<AppSettings> LoadAsync(CancellationToken ct = default)

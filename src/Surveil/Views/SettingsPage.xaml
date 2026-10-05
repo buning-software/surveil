@@ -26,7 +26,8 @@
                     <controls:SettingsCard Header="Launch on startup"
                                            Description="{Binding LaunchOnStartupDescription}"
                                            IsEnabled="{Binding IsLaunchOnStartupToggleEnabled}">
-                        <ToggleSwitch IsOn="{Binding LaunchOnStartup, Mode=TwoWay}"
+                        <ToggleSwitch AutomationProperties.AutomationId="LaunchOnStartupToggle"
+                                      IsOn="{Binding LaunchOnStartup, Mode=TwoWay}"
                                       MinWidth="0" />
                     </controls:SettingsCard>
 
@@ -36,7 +37,8 @@
 
                     <controls:SettingsCard Header="Provider"
                                            Description="Choose which system provides your camera feeds.">
-                        <ComboBox ItemsSource="{Binding AvailableProviders}"
+                        <ComboBox AutomationProperties.AutomationId="ProviderComboBox"
+                                  ItemsSource="{Binding AvailableProviders}"
                                   SelectedItem="{Binding SelectedProvider, Mode=TwoWay}"
                                   DisplayMemberPath="DisplayName"
                                   Width="320" />
@@ -51,27 +53,31 @@
 
                         <controls:SettingsCard Header="Base URL"
                                                Description="Address of your UniFi Protect controller.">
-                            <TextBox Text="{Binding BaseUrl, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                            <TextBox AutomationProperties.AutomationId="BaseUrlTextBox"
+                                     Text="{Binding BaseUrl, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
                                      PlaceholderText="https://192.168.0.1"
                                      Width="320" />
                         </controls:SettingsCard>
 
                         <controls:SettingsCard Header="API key"
                                                Description="Used to authenticate with the controller.">
-                            <TextBox Text="{Binding ApiKey, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                            <TextBox AutomationProperties.AutomationId="ApiKeyTextBox"
+                                     Text="{Binding ApiKey, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
                                      PlaceholderText="Your UniFi Protect API key"
                                      Width="320" />
                         </controls:SettingsCard>
 
                         <controls:SettingsCard Header="Snapshot path"
                                                Description="Where event snapshots are written. Leave empty to use the default path.">
-                            <TextBox Text="{Binding SnapshotPath, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                            <TextBox AutomationProperties.AutomationId="SnapshotPathTextBox"
+                                     Text="{Binding SnapshotPath, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
                                      PlaceholderText="Default path"
                                      Width="320" />
                         </controls:SettingsCard>
                     </StackPanel>
 
-                    <InfoBar IsOpen="{Binding ShowError, Mode=TwoWay}"
+                    <InfoBar AutomationProperties.AutomationId="SettingsErrorInfoBar"
+                             IsOpen="{Binding ShowError, Mode=TwoWay}"
                              Severity="Error"
                              Title="Not saved"
                              Message="{Binding ErrorMessage}"

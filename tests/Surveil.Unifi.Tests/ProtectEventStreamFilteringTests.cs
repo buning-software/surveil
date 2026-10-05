@@ -1,12 +1,12 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NUnit.Framework;
 using Surveil.Domain.Events;
 
 namespace Surveil.Unifi.Tests;
 
-[TestClass]
+[TestFixture]
 public sealed class ProtectEventStreamFilteringTests
 {
     private static async Task<List<CameraEvent>> CollectAsync(string json, EventNotificationSettings settings)
@@ -25,45 +25,45 @@ public sealed class ProtectEventStreamFilteringTests
         return events;
     }
 
-    [TestMethod]
+    [Test]
     public async Task DisabledEventType_IsNotEmitted()
     {
         const string json = """{"type":"add","item":{"id":"ev1","type":"motion","start":1000,"device":"dev1"}}""";
 
         var events = await CollectAsync(json, new EventNotificationSettings { Motion = false });
 
-        Assert.IsEmpty(events);
+        Assert.That(events, Is.Empty);
     }
 
-    [TestMethod]
+    [Test]
     public async Task EnabledEventType_IsEmitted()
     {
         const string json = """{"type":"add","item":{"id":"ev1","type":"motion","start":1000,"device":"dev1"}}""";
 
         var events = await CollectAsync(json, new EventNotificationSettings { Motion = true });
 
-        Assert.ContainsSingle(events);
-        Assert.AreEqual("Motion detected", events[0].Description);
+        Assert.That(events, Has.Exactly(1).Items);
+        Assert.That(events[0].Description, Is.EqualTo("Motion detected"));
     }
 
-    [TestMethod]
+    [Test]
     public async Task NonNotifiableUpdate_IsNotEmitted()
     {
         const string json = """{"type":"update","item":{"id":"ev1","type":"motion","start":1000,"device":"dev1"}}""";
 
         var events = await CollectAsync(json, TestFixtures.AllEventsEnabled());
 
-        Assert.IsEmpty(events);
+        Assert.That(events, Is.Empty);
     }
 
-    [TestMethod]
+    [Test]
     public async Task RingUpdateWithoutEnd_IsEmitted()
     {
         const string json = """{"type":"update","item":{"id":"ev1","type":"ring","start":1000,"device":"dev1"}}""";
 
         var events = await CollectAsync(json, TestFixtures.AllEventsEnabled());
 
-        Assert.ContainsSingle(events);
-        Assert.AreEqual("Doorbell ring", events[0].Description);
+        Assert.That(events, Has.Exactly(1).Items);
+        Assert.That(events[0].Description, Is.EqualTo("Doorbell ring"));
     }
 }

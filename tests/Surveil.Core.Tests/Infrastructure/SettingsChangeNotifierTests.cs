@@ -1,13 +1,13 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NUnit.Framework;
 using Surveil.Application.Settings;
 using Surveil.Infrastructure.Settings;
 
 namespace Surveil.Core.Tests.Infrastructure;
 
-[TestClass]
+[TestFixture]
 public sealed class SettingsChangeNotifierTests
 {
-    [TestMethod]
+    [Test]
     public void NotifyChanged_InvokesSubscribersWithSettings()
     {
         var notifier = new SettingsChangeNotifier();
@@ -17,10 +17,10 @@ public sealed class SettingsChangeNotifierTests
         var sent = new AppSettings { SelectedProvider = VideoProviderType.UnifiProtect };
         notifier.NotifyChanged(sent);
 
-        Assert.AreSame(sent, received);
+        Assert.That(received, Is.SameAs(sent));
     }
 
-    [TestMethod]
+    [Test]
     public void NotifyChanged_NoSubscribers_DoesNotThrow()
     {
         var notifier = new SettingsChangeNotifier();

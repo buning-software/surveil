@@ -46,6 +46,9 @@ dotnet run --project src/Surveil
 # Run the tests
 dotnet test tests/Surveil.Core.Tests
 
+# Run everything except the UI tests
+dotnet test Surveil.slnx -p:Platform=x64 --filter "Category!=UI"
+
 # Run a single test
 dotnet test --filter "FullyQualifiedName~ProtectEventStreamTests.SomeMethod"
 ```
@@ -56,7 +59,11 @@ environmental, not a code error. Verify builds with
 `dotnet build Surveil.slnx -p:AppxPackageSigningEnabled=false` in that case, and say plainly that
 packaging was not exercised.
 
-Tests use **MSTest** + **Moq** (`Microsoft.NET.Test.Sdk`, `MSTest.TestFramework`, `MSTest.TestAdapter`, `Moq`), not xUnit/NUnit. Each `Surveil.Core` internal type under test is exposed to the test project via `InternalsVisibleTo` in `Surveil.Core.csproj` (also `InternalsVisibleTo` to `DynamicProxyGenAssembly2` for Moq's dynamic proxies) rather than making everything public.
+Tests use **NUnit 4** + **Moq** (`Microsoft.NET.Test.Sdk`, `NUnit`, `NUnit3TestAdapter`, `NUnit.Analyzers`, `Moq`), not MSTest/xUnit. Use the constraint model (`Assert.That(actual, Is.EqualTo(expected))`), not `ClassicAssert`, and `[TestCase]` for data rows. `Surveil.Core.Tests` and `Surveil.Unifi.Tests` set `[assembly: FixtureLifeCycle(LifeCycle.InstancePerTestCase)]`, so constructor-initialised fields are fresh per test (NUnit otherwise reuses one fixture instance). Test data is always fake: `.invalid` hosts (e.g. `https://nvr.example.invalid`), `fake-api-key`-style keys, never LAN IPs or real settings.
+
+`tests/Surveil.Tests` holds UI tests that launch the built, unpackaged `Surveil.exe` and drive it through [WinUia](https://github.com/buning-software/win-uia) (`WinUia`, `WinUia.NUnit`). `[assembly: UiTest]` puts every test there in category `UI` and serialises them on the desktop, so they need an interactive, unlocked desktop and `src/Surveil` built for the same configuration/platform (the exe path is baked in at build time; `SURVEIL_EXE` overrides it). Page objects live in `Application/`. `SurveilApp` (a WinUia `App`) owns the process: it launches each test against a fresh temp `SURVEIL_DATA_DIR` and exposes the window as `Shell`. `ShellPage` is a plain class over the main window holding the menu and window chrome; each page (e.g. `SettingsPage`) derives from `ShellPage`, so the menu is reachable from every page. Pages are not `App`s and are never disposed — only `SurveilApp` is. That env var makes the app read and write settings there instead of `%LOCALAPPDATA%\Surveil`, and use a separate single-instance key, so the tests run alongside a normal Surveil instance and never touch real settings. Find elements by `x:Name` (WinUI uses it as AutomationId) or an explicit `AutomationProperties.AutomationId`.
+
+Each `Surveil.Core` internal type under test is exposed to the test project via `InternalsVisibleTo` in `Surveil.Core.csproj` (also `InternalsVisibleTo` to `DynamicProxyGenAssembly2` for Moq's dynamic proxies) rather than making everything public.
 
 Package versions are centrally managed in `Directory.Packages.props` (`ManagePackageVersionsCentrally=true`) — never add a `Version` attribute to a `PackageReference` in a `.csproj`; add/bump the version in `Directory.Packages.props` instead.
 

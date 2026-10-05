@@ -1,10 +1,10 @@
 using System;
 using System.Linq;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NUnit.Framework;
 
 namespace Surveil.Unifi.Tests;
 
-[TestClass]
+[TestFixture]
 public sealed class ProtectEventStreamParseTests
 {
     private static string EventJson(
@@ -22,200 +22,216 @@ public sealed class ProtectEventStreamParseTests
         return $$$"""{"type":"{{{updateType}}}","item":{"id":"ev1","type":"{{{type}}}","start":1000{{{optionalFields}}},"device":"dev1"}}""";
     }
 
-    [TestMethod]
+    [Test]
     public void ParseEvent_Motion_ReturnsMotionEvent()
     {
         var result = ProtectEventStream.ParseEvent(EventJson("motion"));
 
-        Assert.IsInstanceOfType<MotionEvent>(result, out var ev);
-        Assert.AreEqual("ev1", ev.Id);
-        Assert.AreEqual(1000L, ev.Start);
-        Assert.AreEqual("dev1", ev.DeviceId);
-        Assert.AreEqual(ProtectEventUpdateType.Add, ev.UpdateType);
-        Assert.IsNull(ev.End);
+        Assert.That(result, Is.InstanceOf<MotionEvent>());
+        var ev = (MotionEvent)result;
+        Assert.That(ev.Id, Is.EqualTo("ev1"));
+        Assert.That(ev.Start, Is.EqualTo(1000L));
+        Assert.That(ev.DeviceId, Is.EqualTo("dev1"));
+        Assert.That(ev.UpdateType, Is.EqualTo(ProtectEventUpdateType.Add));
+        Assert.That(ev.End, Is.Null);
     }
 
-    [TestMethod]
+    [Test]
     public void ParseEvent_MotionWithEnd_HasEndTimestamp()
     {
         var result = ProtectEventStream.ParseEvent(EventJson("motion", updateType: "update", end: "2000"));
 
-        Assert.IsInstanceOfType<MotionEvent>(result, out var ev);
-        Assert.AreEqual(2000L, ev.End);
-        Assert.AreEqual(ProtectEventUpdateType.Update, ev.UpdateType);
+        Assert.That(result, Is.InstanceOf<MotionEvent>());
+        var ev = (MotionEvent)result;
+        Assert.That(ev.End, Is.EqualTo(2000L));
+        Assert.That(ev.UpdateType, Is.EqualTo(ProtectEventUpdateType.Update));
     }
 
-    [TestMethod]
+    [Test]
     public void ParseEvent_NullEndProperty_ReturnsNullEnd()
     {
         var result = ProtectEventStream.ParseEvent(EventJson("motion", end: "null"));
 
-        Assert.IsInstanceOfType<MotionEvent>(result, out var ev);
-        Assert.IsNull(ev.End);
+        Assert.That(result, Is.InstanceOf<MotionEvent>());
+        var ev = (MotionEvent)result;
+        Assert.That(ev.End, Is.Null);
     }
 
-    [TestMethod]
+    [Test]
     public void ParseEvent_SmartDetectZone_ReturnsWithSmartTypes()
     {
         var result = ProtectEventStream.ParseEvent(
             EventJson("smartDetectZone", smartDetectTypes: """["person","vehicle"]"""));
 
-        Assert.IsInstanceOfType<SmartDetectZoneEvent>(result, out var ev);
-        CollectionAssert.AreEqual(new[] { "person", "vehicle" }, ev.SmartDetectTypes.ToArray());
+        Assert.That(result, Is.InstanceOf<SmartDetectZoneEvent>());
+        var ev = (SmartDetectZoneEvent)result;
+        Assert.That(ev.SmartDetectTypes.ToArray(), Is.EqualTo(new[] { "person", "vehicle" }));
     }
 
-    [DataTestMethod]
-    [DataRow("smartDetectLine", """["car"]""", typeof(SmartDetectLineEvent))]
-    [DataRow("smartDetectLoiterZone", "[]", typeof(SmartDetectLoiterZoneEvent))]
-    [DataRow("smartAudioDetect", """["smoke"]""", typeof(SmartAudioDetectEvent))]
-    [DataRow("ring", null, typeof(RingEvent))]
-    [DataRow("lightMotion", null, typeof(LightMotionEvent))]
-    [DataRow("sensorMotion", null, typeof(SensorMotionEvent))]
-    [DataRow("sensorTamper", null, typeof(SensorTamperEvent))]
-    [DataRow("sensorSmokeTest", null, typeof(SensorSmokeTestEvent))]
+    [TestCase("smartDetectLine", """["car"]""", typeof(SmartDetectLineEvent))]
+    [TestCase("smartDetectLoiterZone", "[]", typeof(SmartDetectLoiterZoneEvent))]
+    [TestCase("smartAudioDetect", """["smoke"]""", typeof(SmartAudioDetectEvent))]
+    [TestCase("ring", null, typeof(RingEvent))]
+    [TestCase("lightMotion", null, typeof(LightMotionEvent))]
+    [TestCase("sensorMotion", null, typeof(SensorMotionEvent))]
+    [TestCase("sensorTamper", null, typeof(SensorTamperEvent))]
+    [TestCase("sensorSmokeTest", null, typeof(SensorSmokeTestEvent))]
     public void ParseEvent_KnownType_ReturnsMatchingEvent(string type, string? smartDetectTypes, Type expected)
     {
         var result = ProtectEventStream.ParseEvent(EventJson(type, smartDetectTypes: smartDetectTypes));
 
-        Assert.IsInstanceOfType(result, expected);
+        Assert.That(result, Is.InstanceOf(expected));
     }
 
-    [TestMethod]
+    [Test]
     public void ParseEvent_SensorAlarm_WithMetadata_ReturnsAlarmType()
     {
         var result = ProtectEventStream.ParseEvent(
             EventJson("sensorAlarm", metadata: """{"alarmType":{"text":"smoke"}}"""));
 
-        Assert.IsInstanceOfType<SensorAlarmEvent>(result, out var ev);
-        Assert.AreEqual("smoke", ev.AlarmType);
+        Assert.That(result, Is.InstanceOf<SensorAlarmEvent>());
+        var ev = (SensorAlarmEvent)result;
+        Assert.That(ev.AlarmType, Is.EqualTo("smoke"));
     }
 
-    [TestMethod]
+    [Test]
     public void ParseEvent_SensorAlarm_WithoutMetadata_ReturnsEmptyAlarmType()
     {
         var result = ProtectEventStream.ParseEvent(EventJson("sensorAlarm"));
 
-        Assert.IsInstanceOfType<SensorAlarmEvent>(result, out var ev);
-        Assert.AreEqual(string.Empty, ev.AlarmType);
+        Assert.That(result, Is.InstanceOf<SensorAlarmEvent>());
+        var ev = (SensorAlarmEvent)result;
+        Assert.That(ev.AlarmType, Is.EqualTo(string.Empty));
     }
 
-    [TestMethod]
+    [Test]
     public void ParseEvent_SensorOpened_WithMountType_ReturnsMountType()
     {
         var result = ProtectEventStream.ParseEvent(
             EventJson("sensorOpened", metadata: """{"sensorMountType":{"text":"door"}}"""));
 
-        Assert.IsInstanceOfType<SensorOpenedEvent>(result, out var ev);
-        Assert.AreEqual("door", ev.MountType);
+        Assert.That(result, Is.InstanceOf<SensorOpenedEvent>());
+        var ev = (SensorOpenedEvent)result;
+        Assert.That(ev.MountType, Is.EqualTo("door"));
     }
 
-    [TestMethod]
+    [Test]
     public void ParseEvent_SensorOpened_WithoutMetadata_ReturnsEmptyMountType()
     {
         var result = ProtectEventStream.ParseEvent(EventJson("sensorOpened"));
 
-        Assert.IsInstanceOfType<SensorOpenedEvent>(result, out var ev);
-        Assert.AreEqual(string.Empty, ev.MountType);
+        Assert.That(result, Is.InstanceOf<SensorOpenedEvent>());
+        var ev = (SensorOpenedEvent)result;
+        Assert.That(ev.MountType, Is.EqualTo(string.Empty));
     }
 
-    [TestMethod]
+    [Test]
     public void ParseEvent_SensorClosed_WithMountType_ReturnsMountType()
     {
         var result = ProtectEventStream.ParseEvent(
             EventJson("sensorClosed", metadata: """{"sensorMountType":{"text":"window"}}"""));
 
-        Assert.IsInstanceOfType<SensorClosedEvent>(result, out var ev);
-        Assert.AreEqual("window", ev.MountType);
+        Assert.That(result, Is.InstanceOf<SensorClosedEvent>());
+        var ev = (SensorClosedEvent)result;
+        Assert.That(ev.MountType, Is.EqualTo("window"));
     }
 
-    [TestMethod]
+    [Test]
     public void ParseEvent_SensorClosed_WithoutMetadata_ReturnsEmptyMountType()
     {
         var result = ProtectEventStream.ParseEvent(EventJson("sensorClosed"));
 
-        Assert.IsInstanceOfType<SensorClosedEvent>(result, out var ev);
-        Assert.AreEqual(string.Empty, ev.MountType);
+        Assert.That(result, Is.InstanceOf<SensorClosedEvent>());
+        var ev = (SensorClosedEvent)result;
+        Assert.That(ev.MountType, Is.EqualTo(string.Empty));
     }
 
-    [TestMethod]
+    [Test]
     public void ParseEvent_SensorWaterLeak_WithMountType_ReturnsMountType()
     {
         var result = ProtectEventStream.ParseEvent(
             EventJson("sensorWaterLeak", metadata: """{"sensorMountType":{"text":"leak"}}"""));
 
-        Assert.IsInstanceOfType<SensorWaterLeakEvent>(result, out var ev);
-        Assert.AreEqual("leak", ev.MountType);
+        Assert.That(result, Is.InstanceOf<SensorWaterLeakEvent>());
+        var ev = (SensorWaterLeakEvent)result;
+        Assert.That(ev.MountType, Is.EqualTo("leak"));
     }
 
-    [TestMethod]
+    [Test]
     public void ParseEvent_SensorWaterLeak_WithoutMetadata_ReturnsEmptyMountType()
     {
         var result = ProtectEventStream.ParseEvent(EventJson("sensorWaterLeak"));
 
-        Assert.IsInstanceOfType<SensorWaterLeakEvent>(result, out var ev);
-        Assert.AreEqual(string.Empty, ev.MountType);
+        Assert.That(result, Is.InstanceOf<SensorWaterLeakEvent>());
+        var ev = (SensorWaterLeakEvent)result;
+        Assert.That(ev.MountType, Is.EqualTo(string.Empty));
     }
 
-    [TestMethod]
+    [Test]
     public void ParseEvent_SensorBatteryLow_WithPercentage_ReturnsBatteryPercentage()
     {
         var result = ProtectEventStream.ParseEvent(
             EventJson("sensorBatteryLow", metadata: """{"sensorBatteryPercentage":{"number":12.5}}"""));
 
-        Assert.IsInstanceOfType<SensorBatteryLowEvent>(result, out var ev);
-        Assert.AreEqual(12.5, ev.BatteryPercentage);
+        Assert.That(result, Is.InstanceOf<SensorBatteryLowEvent>());
+        var ev = (SensorBatteryLowEvent)result;
+        Assert.That(ev.BatteryPercentage, Is.EqualTo(12.5));
     }
 
-    [TestMethod]
+    [Test]
     public void ParseEvent_SensorBatteryLow_WithoutMetadata_ReturnsZeroPercentage()
     {
         var result = ProtectEventStream.ParseEvent(EventJson("sensorBatteryLow"));
 
-        Assert.IsInstanceOfType<SensorBatteryLowEvent>(result, out var ev);
-        Assert.AreEqual(0d, ev.BatteryPercentage);
+        Assert.That(result, Is.InstanceOf<SensorBatteryLowEvent>());
+        var ev = (SensorBatteryLowEvent)result;
+        Assert.That(ev.BatteryPercentage, Is.EqualTo(0d));
     }
 
-    [TestMethod]
+    [Test]
     public void ParseEvent_SensorExtremeValues_WithAllMetadata_ReturnsAllFields()
     {
         var result = ProtectEventStream.ParseEvent(EventJson("sensorExtremeValues",
             metadata: """{"sensorType":{"text":"temperature"},"sensorValue":{"text":42.5},"status":{"text":"high"}}"""));
 
-        Assert.IsInstanceOfType<SensorExtremeValuesEvent>(result, out var ev);
-        Assert.AreEqual("temperature", ev.SensorType);
-        Assert.AreEqual(42.5, ev.SensorValue);
-        Assert.AreEqual("high", ev.Status);
+        Assert.That(result, Is.InstanceOf<SensorExtremeValuesEvent>());
+        var ev = (SensorExtremeValuesEvent)result;
+        Assert.That(ev.SensorType, Is.EqualTo("temperature"));
+        Assert.That(ev.SensorValue, Is.EqualTo(42.5));
+        Assert.That(ev.Status, Is.EqualTo("high"));
     }
 
-    [TestMethod]
+    [Test]
     public void ParseEvent_SensorExtremeValues_WithoutMetadata_ReturnsDefaults()
     {
         var result = ProtectEventStream.ParseEvent(EventJson("sensorExtremeValues"));
 
-        Assert.IsInstanceOfType<SensorExtremeValuesEvent>(result, out var ev);
-        Assert.AreEqual(string.Empty, ev.SensorType);
-        Assert.AreEqual(0d, ev.SensorValue);
-        Assert.AreEqual(string.Empty, ev.Status);
+        Assert.That(result, Is.InstanceOf<SensorExtremeValuesEvent>());
+        var ev = (SensorExtremeValuesEvent)result;
+        Assert.That(ev.SensorType, Is.EqualTo(string.Empty));
+        Assert.That(ev.SensorValue, Is.EqualTo(0d));
+        Assert.That(ev.Status, Is.EqualTo(string.Empty));
     }
 
-    [TestMethod]
+    [Test]
     public void ParseEvent_UnknownType_ReturnsUnknownEvent()
     {
         var result = ProtectEventStream.ParseEvent(EventJson("mystery"));
 
-        Assert.IsInstanceOfType<UnknownEvent>(result, out var ev);
-        Assert.AreEqual("mystery", ev.Type);
+        Assert.That(result, Is.InstanceOf<UnknownEvent>());
+        var ev = (UnknownEvent)result;
+        Assert.That(ev.Type, Is.EqualTo("mystery"));
     }
 
-    [TestMethod]
+    [Test]
     public void ParseEvent_InvalidJson_ReturnsNull()
     {
-        Assert.IsNull(ProtectEventStream.ParseEvent("not-valid-json"));
+        Assert.That(ProtectEventStream.ParseEvent("not-valid-json"), Is.Null);
     }
 
-    [TestMethod]
+    [Test]
     public void ParseEvent_MissingItemProperty_ReturnsNull()
     {
-        Assert.IsNull(ProtectEventStream.ParseEvent("""{"type":"add"}"""));
+        Assert.That(ProtectEventStream.ParseEvent("""{"type":"add"}"""), Is.Null);
     }
 }

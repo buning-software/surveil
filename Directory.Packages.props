@@ -3,25 +3,28 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
   <ItemGroup>
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
-    <PackageVersion Include="MSTest.TestFramework" Version="3.8.3" />
-    <PackageVersion Include="MSTest.TestAdapter" Version="3.8.3" />
-    <PackageVersion Include="GitHubActionsTestLogger" Version="2.4.1" />
-    <PackageVersion Include="Moq" Version="4.20.72" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
+    <PackageVersion Include="NUnit" Version="5.0.0" />
+    <PackageVersion Include="NUnit3TestAdapter" Version="6.3.0" />
+    <PackageVersion Include="NUnit.Analyzers" Version="4.15.0" />
+    <PackageVersion Include="WinUia" Version="0.0.3" />
+    <PackageVersion Include="WinUia.NUnit" Version="0.0.3" />
+    <PackageVersion Include="GitHubActionsTestLogger" Version="3.0.5" />
+    <PackageVersion Include="Moq" Version="4.21.0" />
     <PackageVersion Include="Microsoft.Extensions.Configuration" Version="9.0.3" />
-    <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageVersion Include="CommunityToolkit.WinUI.Controls.SettingsControls" Version="8.2.251219" />
     <PackageVersion Include="H.NotifyIcon" Version="2.3.2" />
-    <PackageVersion Include="H.NotifyIcon.WinUI" Version="2.3.2" />
-    <PackageVersion Include="LibVLCSharp" Version="3.9.6" />
+    <PackageVersion Include="H.NotifyIcon.WinUI" Version="2.4.1" />
+    <PackageVersion Include="LibVLCSharp" Version="3.10.1" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.3" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="9.0.3" />
-    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="9.0.3" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.12" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="9.0.3" />
-    <PackageVersion Include="Microsoft.Extensions.Options" Version="9.0.3" />
+    <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.12" />
     <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="9.0.3" />
-    <PackageVersion Include="VideoLAN.LibVLC.Windows" Version="3.0.23" />
-    <PackageVersion Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.7175" />
-    <PackageVersion Include="Microsoft.WindowsAppSDK" Version="1.8.251106002" />
+    <PackageVersion Include="VideoLAN.LibVLC.Windows" Version="3.0.24" />
+    <PackageVersion Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2705" />
+    <PackageVersion Include="Microsoft.WindowsAppSDK" Version="2.5.1" />
   </ItemGroup>
 </Project>

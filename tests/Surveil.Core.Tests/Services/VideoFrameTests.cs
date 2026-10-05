@@ -1,10 +1,10 @@
 using System.Buffers;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NUnit.Framework;
 using Surveil.Services;
 
 namespace Surveil.Core.Tests.Services;
 
-[TestClass]
+[TestFixture]
 public sealed class VideoFrameTests
 {
     private static VideoFrame RentFrame(int width = 4, int height = 4)
@@ -14,18 +14,18 @@ public sealed class VideoFrameTests
         return new VideoFrame(pixels, width, height, dataLength);
     }
 
-    [TestMethod]
+    [Test]
     public void Constructor_SetsAllProperties()
     {
         using var frame = RentFrame(8, 6);
 
-        Assert.AreEqual(8, frame.Width);
-        Assert.AreEqual(6, frame.Height);
-        Assert.AreEqual(8 * 6 * 4, frame.DataLength);
-        Assert.IsNotNull(frame.Pixels);
+        Assert.That(frame.Width, Is.EqualTo(8));
+        Assert.That(frame.Height, Is.EqualTo(6));
+        Assert.That(frame.DataLength, Is.EqualTo(8 * 6 * 4));
+        Assert.That(frame.Pixels, Is.Not.Null);
     }
 
-    [TestMethod]
+    [Test]
     public void Dispose_ReturnsPixelsToThePool()
     {
         var frame = RentFrame();
@@ -33,7 +33,7 @@ public sealed class VideoFrameTests
         frame.Dispose();
     }
 
-    [TestMethod]
+    [Test]
     public void Dispose_CalledTwice_DoesNotThrow()
     {
         var frame = RentFrame();

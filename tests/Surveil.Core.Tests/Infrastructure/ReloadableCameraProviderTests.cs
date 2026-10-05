@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NUnit.Framework;
 using Surveil.Application.Ports;
 using Surveil.Application.Settings;
 using Surveil.Domain.Cameras;
@@ -11,7 +11,7 @@ using Surveil.Infrastructure.Settings;
 
 namespace Surveil.Core.Tests.Infrastructure;
 
-[TestClass]
+[TestFixture]
 public sealed class ReloadableCameraProviderTests
 {
     private sealed class StubCameraProvider : ICameraProvider
@@ -49,18 +49,18 @@ public sealed class ReloadableCameraProviderTests
         UnifiProtect = new UnifiProtectProviderSettings { BaseUrl = "https://host", ApiKey = "key" }
     };
 
-    [TestMethod]
+    [Test]
     public async Task InitialSettingsNone_DelegatesToNoOpProvider()
     {
         var provider = CreateProvider(NoneSettings(), new StubFactory(VideoProviderType.UnifiProtect));
 
         var cameras = await provider.GetCamerasAsync();
 
-        Assert.IsEmpty(cameras);
-        await Assert.ThrowsAsync<NotSupportedException>(() => provider.CreateRtspsStreamsAsync("cam1"));
+        Assert.That(cameras, Is.Empty);
+        Assert.CatchAsync<NotSupportedException>(() => provider.CreateRtspsStreamsAsync("cam1"));
     }
 
-    [TestMethod]
+    [Test]
     public async Task SettingsChanged_ToNone_SwapsToNoOpProvider()
     {
         var provider = CreateProvider(UnifiSettings(), new StubFactory(VideoProviderType.UnifiProtect));
@@ -68,21 +68,21 @@ public sealed class ReloadableCameraProviderTests
         _notifier.NotifyChanged(NoneSettings());
 
         var cameras = await provider.GetCamerasAsync();
-        Assert.IsEmpty(cameras);
+        Assert.That(cameras, Is.Empty);
     }
 
-    [TestMethod]
+    [Test]
     public async Task MatchingFactory_IsUsedForTheSelectedProvider()
     {
         var provider = CreateProvider(UnifiSettings(), new StubFactory(VideoProviderType.UnifiProtect));
 
         var cameras = await provider.GetCamerasAsync();
 
-        Assert.HasCount(1, cameras);
-        Assert.AreEqual("Stub", cameras[0].Name);
+        Assert.That(cameras, Has.Count.EqualTo(1));
+        Assert.That(cameras[0].Name, Is.EqualTo("Stub"));
     }
 
-    [TestMethod]
+    [Test]
     public async Task FactoryReturningNull_FallsBackToNoOpProvider()
     {
         var provider = CreateProvider(
@@ -90,16 +90,16 @@ public sealed class ReloadableCameraProviderTests
 
         var cameras = await provider.GetCamerasAsync();
 
-        Assert.IsEmpty(cameras);
+        Assert.That(cameras, Is.Empty);
     }
 
-    [TestMethod]
+    [Test]
     public async Task NoFactoryForSelectedProvider_FallsBackToNoOpProvider()
     {
         var provider = CreateProvider(UnifiSettings());
 
         var cameras = await provider.GetCamerasAsync();
 
-        Assert.IsEmpty(cameras);
+        Assert.That(cameras, Is.Empty);
     }
 }

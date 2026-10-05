@@ -1,20 +1,20 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NUnit.Framework;
 
 namespace Surveil.Unifi.Tests;
 
-[TestClass]
+[TestFixture]
 public sealed class UnifiProtectOptionsTests
 {
-    [TestMethod]
+    [Test]
     public void Options_Properties_AreSetViaInitializer()
     {
         var options = new UnifiProtectOptions
         {
-            BaseUrl = "https://192.168.0.1/proxy/protect/api",
-            ApiKey = "my-api-key"
+            BaseUrl = "https://nvr.example.invalid/proxy/protect/api",
+            ApiKey = "fake-api-key"
         };
 
-        Assert.AreEqual("https://192.168.0.1/proxy/protect/api", options.BaseUrl);
-        Assert.AreEqual("my-api-key", options.ApiKey);
+        Assert.That(options.BaseUrl, Is.EqualTo("https://nvr.example.invalid/proxy/protect/api"));
+        Assert.That(options.ApiKey, Is.EqualTo("fake-api-key"));
     }
 }

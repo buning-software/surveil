@@ -1,19 +1,19 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NUnit.Framework;
 using Surveil.Services;
 
 namespace Surveil.Core.Tests.Services;
 
-[TestClass]
+[TestFixture]
 public sealed class SnapshotServiceTests
 {
     private const double LandscapeAspectRatio = 16.0 / 9.0;
 
     private readonly string _tempDir = Path.Combine(Path.GetTempPath(), $"snapshot-tests-{Guid.NewGuid():N}");
 
-    [TestCleanup]
+    [TearDown]
     public void Cleanup()
     {
         if (Directory.Exists(_tempDir))
@@ -25,70 +25,69 @@ public sealed class SnapshotServiceTests
 
     private static byte[] BgraPixels(int width, int height) => new byte[width * height * 4];
 
-    [TestMethod]
+    [Test]
     public void GetHeroPath_AddsHeroSuffix()
     {
         var hero = SnapshotService.GetHeroPath(@"C:\snapshots\snapshot.jpg");
 
-        Assert.AreEqual(@"C:\snapshots\snapshot-hero.jpg", hero);
+        Assert.That(hero, Is.EqualTo(@"C:\snapshots\snapshot-hero.jpg"));
     }
 
-    [TestMethod]
+    [Test]
     public void GetHeroPath_PreservesExtension()
     {
         var hero = SnapshotService.GetHeroPath(@"C:\snapshots\frame.png");
 
-        Assert.IsTrue(hero.EndsWith("-hero.png"));
+        Assert.That(hero.EndsWith("-hero.png"), Is.True);
     }
 
-    [TestMethod]
+    [Test]
     public void GetHeroPath_NestedDirectory_HeroIsInSameDirectory()
     {
         var path = TempPath("sub", "shot.jpg");
 
         var hero = SnapshotService.GetHeroPath(path);
 
-        Assert.AreEqual(Path.GetDirectoryName(path), Path.GetDirectoryName(hero));
-        Assert.IsTrue(Path.GetFileName(hero).StartsWith("shot-hero"));
+        Assert.That(Path.GetDirectoryName(hero), Is.EqualTo(Path.GetDirectoryName(path)));
+        Assert.That(Path.GetFileName(hero).StartsWith("shot-hero"), Is.True);
     }
 
-    [TestMethod]
+    [Test]
     public void Constructor_CreatesDirectory()
     {
         var snapshotPath = TempPath("shots", "snapshot.jpg");
 
         using var service = new SnapshotService(snapshotPath);
 
-        Assert.IsTrue(Directory.Exists(Path.GetDirectoryName(snapshotPath)));
+        Assert.That(Directory.Exists(Path.GetDirectoryName(snapshotPath)), Is.True);
     }
 
-    [TestMethod]
-    [DataRow(1920, 1080)]
-    [DataRow(160, 90)]
+    [TestCase(1920, 1080)]
+    [TestCase(160, 90)]
     public void CropToLandscape_WhenAlreadyLandscape_ReturnsSamePixels(int width, int height)
     {
         var pixels = BgraPixels(width, height);
 
         var (result, croppedWidth, croppedHeight) = SnapshotService.CropToLandscape(pixels, width, height);
 
-        Assert.AreSame(pixels, result);
-        Assert.AreEqual(width, croppedWidth);
-        Assert.AreEqual(height, croppedHeight);
+        Assert.That(result, Is.SameAs(pixels));
+        Assert.That(croppedWidth, Is.EqualTo(width));
+        Assert.That(croppedHeight, Is.EqualTo(height));
     }
 
-    [TestMethod]
+    [Test]
     public void CropToLandscape_SquareImage_CropsToLandscape()
     {
         var pixels = BgraPixels(100, 100);
 
         var (_, croppedWidth, croppedHeight) = SnapshotService.CropToLandscape(pixels, 100, 100);
 
-        Assert.AreEqual(100, croppedWidth);
-        Assert.IsTrue(croppedHeight < 100, "Cropped height should be less than original");
-        Assert.IsTrue(Math.Abs((double)croppedWidth / croppedHeight - LandscapeAspectRatio) < 0.1);
+        Assert.That(croppedWidth, Is.EqualTo(100));
+        Assert.That(croppedHeight < 100, Is.True, "Cropped height should be less than original");
+        Assert.That(Math.Abs((double)croppedWidth / croppedHeight - LandscapeAspectRatio) < 0.1, Is.True);
     }
 
-    [TestMethod]
+    [Test]
     public void CropToLandscape_PortraitImage_CropsToCenterLandscape()
     {
         int width = 90, height = 160;
@@ -100,15 +99,15 @@ public sealed class SnapshotServiceTests
 
         var (result, croppedWidth, croppedHeight) = SnapshotService.CropToLandscape(pixels, width, height);
 
-        Assert.AreEqual(width, croppedWidth);
-        Assert.IsTrue(croppedHeight < height, "Cropped height should be less than original");
+        Assert.That(croppedWidth, Is.EqualTo(width));
+        Assert.That(croppedHeight < height, Is.True, "Cropped height should be less than original");
 
         var expectedCropHeight = (int)(width / LandscapeAspectRatio);
         var expectedFirstRow = (height - expectedCropHeight) / 2;
-        Assert.AreEqual((byte)(expectedFirstRow % 256), result[0]);
+        Assert.That(result[0], Is.EqualTo((byte)(expectedFirstRow % 256)));
     }
 
-    [TestMethod]
+    [Test]
     public void CaptureFrame_FirstCall_DoesNotThrow()
     {
         using var service = new SnapshotService(TempPath("snap.jpg"));
@@ -116,7 +115,7 @@ public sealed class SnapshotServiceTests
         service.CaptureFrame(4, 4, BgraPixels(4, 4));
     }
 
-    [TestMethod]
+    [Test]
     public void CaptureFrame_CalledTwiceInARow_ThrottlesTheSecondCall()
     {
         using var service = new SnapshotService(TempPath("snap.jpg"));
@@ -126,7 +125,7 @@ public sealed class SnapshotServiceTests
         service.CaptureFrame(4, 4, pixels);
     }
 
-    [TestMethod]
+    [Test]
     public async Task SaveNowAsync_WritesSnapshotAndHero()
     {
         var snapshotPath = TempPath("snap.jpg");
@@ -134,11 +133,11 @@ public sealed class SnapshotServiceTests
 
         await service.SaveNowAsync(4, 4, BgraPixels(4, 4));
 
-        Assert.IsTrue(File.Exists(snapshotPath));
-        Assert.IsTrue(File.Exists(SnapshotService.GetHeroPath(snapshotPath)));
+        Assert.That(File.Exists(snapshotPath), Is.True);
+        Assert.That(File.Exists(SnapshotService.GetHeroPath(snapshotPath)), Is.True);
     }
 
-    [TestMethod]
+    [Test]
     public void Dispose_CalledTwice_DoesNotThrow()
     {
         var service = new SnapshotService(TempPath("snap.jpg"));

@@ -5,8 +5,13 @@ on:
   workflow_dispatch:
   workflow_call: {}
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  build-test:
+  build:
+    name: Build
     runs-on: windows-latest
     steps:
       - name: Checkout
@@ -21,5 +26,69 @@ jobs:
       - name: Build
         run: dotnet build --no-restore --configuration Release -p:Platform=x64 -p:AppxPackageSigningEnabled=false
 
-      - name: Test
-        run: dotnet test --no-build --configuration Release -p:Platform=x64 --logger GitHubActions
+      - name: Upload build output
+        uses: actions/upload-artifact@v7
+        with:
+          name: build-output
+          path: |
+            src/*/bin/x64/Release
+            tests/*/bin/x64/Release
+          if-no-files-found: error
+          retention-days: 1
+
+  unit-test:
+    name: Run unit tests
+    needs: build
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup .NET environment
+        uses: ./.github/actions/setup-dotnet-env
+
+      - name: Install dependencies
+        run: dotnet restore
+
+      - name: Download build output
+        uses: actions/download-artifact@v8
+        with:
+          name: build-output
+
+      - name: Unit test
+        run: dotnet test --no-build --configuration Release -p:Platform=x64 --filter "Category!=UI" --logger GitHubActions
+
+  ui-test:
+    name: Run UI tests
+    needs: build
+    runs-on: windows-latest
+    timeout-minutes: 20
+    env:
+      SURVEIL_EXE: ${{ github.workspace }}\src\Surveil\bin\x64\Release\net10.0-windows10.0.19041.0\win-x64\Surveil.exe
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup .NET environment
+        uses: ./.github/actions/setup-dotnet-env
+
+      - name: Install dependencies
+        run: dotnet restore
+
+      - name: Download build output
+        uses: actions/download-artifact@v8
+        with:
+          name: build-output
+
+      - name: UI test
+        run: >-
+          dotnet test --no-build --configuration Release -p:Platform=x64 --filter "Category=UI"
+          --logger GitHubActions --logger trx --results-directory TestResults
+
+      - name: Upload UI test results
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ui-test-results
+          path: TestResults
