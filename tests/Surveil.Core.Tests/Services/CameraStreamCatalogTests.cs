@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NUnit.Framework;
 using Moq;
 using Surveil.Application.Ports;
 using Surveil.Application.Settings;
@@ -13,7 +13,7 @@ using Surveil.Services;
 
 namespace Surveil.Core.Tests.Services;
 
-[TestClass]
+[TestFixture]
 public sealed class CameraStreamCatalogTests
 {
     private const string CameraId = "cam-1";
@@ -36,7 +36,7 @@ public sealed class CameraStreamCatalogTests
             .Setup(p => p.CreateRtspsStreamsAsync(CameraId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(streams);
 
-    [TestMethod]
+    [Test]
     public async Task GetStreamsAsync_SeveralExistingQualities_ReturnsThemWithoutCreating()
     {
         SetupExisting(High, Low);
@@ -44,11 +44,11 @@ public sealed class CameraStreamCatalogTests
 
         var streams = await catalog.GetStreamsAsync(CameraId);
 
-        CollectionAssert.AreEqual(new[] { High, Low }, streams.ToArray());
+        Assert.That(streams.ToArray(), Is.EqualTo(new[] { High, Low }));
         _provider.Verify(p => p.CreateRtspsStreamsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
-    [TestMethod]
+    [Test]
     public async Task GetStreamsAsync_SingleExistingQuality_ReturnsCreatedStreams()
     {
         SetupExisting(High);
@@ -57,10 +57,10 @@ public sealed class CameraStreamCatalogTests
 
         var streams = await catalog.GetStreamsAsync(CameraId);
 
-        CollectionAssert.AreEqual(new[] { High, Low }, streams.ToArray());
+        Assert.That(streams.ToArray(), Is.EqualTo(new[] { High, Low }));
     }
 
-    [TestMethod]
+    [Test]
     public async Task GetStreamsAsync_NoExistingStreams_ReturnsCreatedStreams()
     {
         SetupExisting();
@@ -69,10 +69,10 @@ public sealed class CameraStreamCatalogTests
 
         var streams = await catalog.GetStreamsAsync(CameraId);
 
-        Assert.HasCount(2, streams);
+        Assert.That(streams, Has.Count.EqualTo(2));
     }
 
-    [TestMethod]
+    [Test]
     public async Task GetStreamsAsync_CreateFailsWithExistingStream_ReturnsExisting()
     {
         SetupExisting(High);
@@ -83,11 +83,11 @@ public sealed class CameraStreamCatalogTests
 
         var streams = await catalog.GetStreamsAsync(CameraId);
 
-        Assert.ContainsSingle(streams);
-        Assert.AreEqual(High, streams[0]);
+        Assert.That(streams, Has.Exactly(1).Items);
+        Assert.That(streams[0], Is.EqualTo(High));
     }
 
-    [TestMethod]
+    [Test]
     public async Task GetStreamsAsync_CreateFailsWithoutExistingStream_Throws()
     {
         SetupExisting();
@@ -96,10 +96,10 @@ public sealed class CameraStreamCatalogTests
             .ThrowsAsync(new InvalidOperationException("unsupported"));
         using var catalog = CreateCatalog();
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => catalog.GetStreamsAsync(CameraId));
+        await Assert.CatchAsync<InvalidOperationException>(() => catalog.GetStreamsAsync(CameraId));
     }
 
-    [TestMethod]
+    [Test]
     public async Task GetStreamsAsync_CalledTwice_FetchesOnce()
     {
         SetupExisting(High, Low);
@@ -111,7 +111,7 @@ public sealed class CameraStreamCatalogTests
         _provider.Verify(p => p.GetRtspsStreamsAsync(CameraId, It.IsAny<CancellationToken>()), Times.Once);
     }
 
-    [TestMethod]
+    [Test]
     public async Task GetStreamsAsync_ConcurrentCalls_ShareOneFetch()
     {
         var pending = new TaskCompletionSource<IReadOnlyList<RtspsStream>>();
@@ -128,7 +128,7 @@ public sealed class CameraStreamCatalogTests
         _provider.Verify(p => p.GetRtspsStreamsAsync(CameraId, It.IsAny<CancellationToken>()), Times.Once);
     }
 
-    [TestMethod]
+    [Test]
     public async Task GetStreamsAsync_AfterAFailure_FetchesAgain()
     {
         _provider
@@ -137,13 +137,13 @@ public sealed class CameraStreamCatalogTests
             .ReturnsAsync([High, Low]);
         using var catalog = CreateCatalog();
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => catalog.GetStreamsAsync(CameraId));
+        await Assert.CatchAsync<InvalidOperationException>(() => catalog.GetStreamsAsync(CameraId));
         var streams = await catalog.GetStreamsAsync(CameraId);
 
-        Assert.HasCount(2, streams);
+        Assert.That(streams, Has.Count.EqualTo(2));
     }
 
-    [TestMethod]
+    [Test]
     public async Task GetStreamsAsync_CallerCancels_DoesNotCancelTheSharedFetch()
     {
         var pending = new TaskCompletionSource<IReadOnlyList<RtspsStream>>();
@@ -155,16 +155,16 @@ public sealed class CameraStreamCatalogTests
 
         var cancelled = catalog.GetStreamsAsync(CameraId, cts.Token);
         cts.Cancel();
-        await Assert.ThrowsAsync<OperationCanceledException>(() => cancelled);
+        await Assert.CatchAsync<OperationCanceledException>(() => cancelled);
 
         var second = catalog.GetStreamsAsync(CameraId);
         pending.SetResult([High, Low]);
 
-        Assert.HasCount(2, await second);
+        Assert.That(await second, Has.Count.EqualTo(2));
         _provider.Verify(p => p.GetRtspsStreamsAsync(CameraId, It.IsAny<CancellationToken>()), Times.Once);
     }
 
-    [TestMethod]
+    [Test]
     public async Task SettingsChanged_ClearsTheCache()
     {
         SetupExisting(High, Low);
@@ -177,7 +177,7 @@ public sealed class CameraStreamCatalogTests
         _provider.Verify(p => p.GetRtspsStreamsAsync(CameraId, It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
 
-    [TestMethod]
+    [Test]
     public async Task Prefetch_StartsTheFetchSoALaterGetIsServedFromCache()
     {
         SetupExisting(High, Low);
@@ -189,7 +189,7 @@ public sealed class CameraStreamCatalogTests
         _provider.Verify(p => p.GetRtspsStreamsAsync(CameraId, It.IsAny<CancellationToken>()), Times.Once);
     }
 
-    [TestMethod]
+    [Test]
     public void Prefetch_FetchFails_DoesNotThrow()
     {
         _provider

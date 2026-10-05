@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NUnit.Framework;
 using Moq;
 using Surveil.Application.Ports;
 using Surveil.Application.Settings;
@@ -13,7 +13,7 @@ using Surveil.Unifi.WebSocket;
 
 namespace Surveil.Unifi.Tests;
 
-[TestClass]
+[TestFixture]
 public sealed class ProtectEventStreamTests
 {
     private static ProtectEventStream CreateStream(
@@ -23,40 +23,40 @@ public sealed class ProtectEventStreamTests
         ISettingsChangeNotifier? notifier = null) =>
         new(TestFixtures.ProtectOptions(baseUrl, apiKey), webSocketFactory, TestFixtures.AllEventsEnabled(), notifier);
 
-    [TestMethod]
+    [Test]
     public void BuildWebSocketUri_HttpsBaseUrl_UsesWss()
     {
-        var stream = CreateStream(new Mock<IWebSocketFactory>().Object, "https://192.168.0.1/proxy/protect/api");
+        var stream = CreateStream(new Mock<IWebSocketFactory>().Object, "https://nvr.example.invalid/proxy/protect/api");
 
         var uri = stream.BuildWebSocketUri();
 
-        Assert.AreEqual("wss", uri.Scheme);
-        Assert.AreEqual("192.168.0.1", uri.Host);
-        Assert.IsTrue(uri.AbsolutePath.EndsWith("/v1/subscribe/events"));
+        Assert.That(uri.Scheme, Is.EqualTo("wss"));
+        Assert.That(uri.Host, Is.EqualTo("nvr.example.invalid"));
+        Assert.That(uri.AbsolutePath.EndsWith("/v1/subscribe/events"), Is.True);
     }
 
-    [TestMethod]
+    [Test]
     public void BuildWebSocketUri_HttpBaseUrl_UsesWs()
     {
-        var stream = CreateStream(new Mock<IWebSocketFactory>().Object, "http://192.168.0.1/api");
+        var stream = CreateStream(new Mock<IWebSocketFactory>().Object, "http://nvr.example.invalid/api");
 
         var uri = stream.BuildWebSocketUri();
 
-        Assert.AreEqual("ws", uri.Scheme);
+        Assert.That(uri.Scheme, Is.EqualTo("ws"));
     }
 
-    [TestMethod]
+    [Test]
     public void BuildWebSocketUri_TrailingSlash_HandledCorrectly()
     {
         var stream = CreateStream(new Mock<IWebSocketFactory>().Object, "https://host/api/");
 
         var uri = stream.BuildWebSocketUri();
 
-        Assert.AreEqual("wss", uri.Scheme);
-        Assert.IsTrue(uri.AbsolutePath.EndsWith("v1/subscribe/events"));
+        Assert.That(uri.Scheme, Is.EqualTo("wss"));
+        Assert.That(uri.AbsolutePath.EndsWith("v1/subscribe/events"), Is.True);
     }
 
-    [TestMethod]
+    [Test]
     public async Task SubscribeAsync_AlreadyCancelled_YieldsNoEvents()
     {
         var wsFactoryMock = new Mock<IWebSocketFactory>();
@@ -68,11 +68,11 @@ public sealed class ProtectEventStreamTests
         await foreach (var e in stream.SubscribeAsync(cts.Token))
             events.Add(e);
 
-        Assert.IsEmpty(events);
+        Assert.That(events, Is.Empty);
         wsFactoryMock.Verify(f => f.Create(It.IsAny<string>()), Times.Never());
     }
 
-    [TestMethod]
+    [Test]
     public async Task SubscribeAsync_ConnectFails_RetriesAfterTheBackoffDelay()
     {
         var wsMock = new Mock<IWebSocketConnection>();
@@ -90,11 +90,11 @@ public sealed class ProtectEventStreamTests
         await foreach (var e in stream.SubscribeAsync(cts.Token))
             events.Add(e);
 
-        Assert.IsEmpty(events);
+        Assert.That(events, Is.Empty);
         wsFactoryMock.Verify(f => f.Create(It.IsAny<string>()), Times.AtLeast(2));
     }
 
-    [TestMethod]
+    [Test]
     public async Task SubscribeAsync_ConnectCancelledImmediately_YieldsNoEvents()
     {
         using var cts = new CancellationTokenSource();
@@ -116,10 +116,10 @@ public sealed class ProtectEventStreamTests
         await foreach (var e in stream.SubscribeAsync(cts.Token))
             events.Add(e);
 
-        Assert.IsEmpty(events);
+        Assert.That(events, Is.Empty);
     }
 
-    [TestMethod]
+    [Test]
     public async Task SubscribeAsync_ConnectsAndReceivesEvent_YieldsEvent()
     {
         const string json = """{"type":"add","item":{"id":"ev1","type":"ring","start":1000,"device":"dev1"}}""";
@@ -133,13 +133,13 @@ public sealed class ProtectEventStreamTests
             break;
         }
 
-        Assert.ContainsSingle(events);
-        Assert.AreEqual("ev1", events[0].Id);
-        Assert.AreEqual("dev1", events[0].DeviceId);
-        Assert.AreEqual("Doorbell ring", events[0].Description);
+        Assert.That(events, Has.Exactly(1).Items);
+        Assert.That(events[0].Id, Is.EqualTo("ev1"));
+        Assert.That(events[0].DeviceId, Is.EqualTo("dev1"));
+        Assert.That(events[0].Description, Is.EqualTo("Doorbell ring"));
     }
 
-    [TestMethod]
+    [Test]
     public async Task SubscribeAsync_ReceivesCloseMessage_ReconnectsWithBackoff()
     {
         var receiveCount = 0;
@@ -164,18 +164,18 @@ public sealed class ProtectEventStreamTests
         await foreach (var e in stream.SubscribeAsync(cts.Token))
             events.Add(e);
 
-        Assert.IsEmpty(events);
-        Assert.IsTrue(receiveCount > 0, "At least one receive call was made");
+        Assert.That(events, Is.Empty);
+        Assert.That(receiveCount > 0, Is.True, "At least one receive call was made");
         wsFactoryMock.Verify(f => f.Create(It.IsAny<string>()), Times.AtLeast(2));
     }
 
-    [TestMethod]
+    [Test]
     public void SettingsChanged_UpdatesBuildWebSocketUri()
     {
         var notifier = new SettingsChangeNotifier();
         var stream = CreateStream(new Mock<IWebSocketFactory>().Object, "https://host1", "key1", notifier);
 
-        Assert.AreEqual("host1", stream.BuildWebSocketUri().Host);
+        Assert.That(stream.BuildWebSocketUri().Host, Is.EqualTo("host1"));
 
         notifier.NotifyChanged(new AppSettings
         {
@@ -183,10 +183,10 @@ public sealed class ProtectEventStreamTests
             UnifiProtect = new UnifiProtectProviderSettings { BaseUrl = "https://host2", ApiKey = "key2" }
         });
 
-        Assert.AreEqual("host2", stream.BuildWebSocketUri().Host);
+        Assert.That(stream.BuildWebSocketUri().Host, Is.EqualTo("host2"));
     }
 
-    [TestMethod]
+    [Test]
     public async Task SettingsChanged_DuringConnect_AbortsAndReconnectsWithNewApiKey()
     {
         var notifier = new SettingsChangeNotifier();
@@ -218,7 +218,7 @@ public sealed class ProtectEventStreamTests
 
         await readTask;
 
-        CollectionAssert.Contains(capturedApiKeys, "new-key");
+        Assert.That(capturedApiKeys, Does.Contain("new-key"));
 
         IWebSocketConnection ConnectHangsUntilAborted()
         {

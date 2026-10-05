@@ -1,48 +1,48 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NUnit.Framework;
 using Surveil.Domain.Cameras;
 
 namespace Surveil.Core.Tests.Domain;
 
-[TestClass]
+[TestFixture]
 public sealed class CameraTests
 {
-    [TestMethod]
+    [Test]
     public void Constructor_SetsAllProperties()
     {
         var camera = new Camera("id-1", "Front Door", true);
 
-        Assert.AreEqual("id-1", camera.Id);
-        Assert.AreEqual("Front Door", camera.Name);
-        Assert.IsTrue(camera.IsConnected);
+        Assert.That(camera.Id, Is.EqualTo("id-1"));
+        Assert.That(camera.Name, Is.EqualTo("Front Door"));
+        Assert.That(camera.IsConnected, Is.True);
     }
 
-    [TestMethod]
+    [Test]
     public void Constructor_WithIsConnectedFalse_LeavesTheCameraDisconnected()
     {
         var camera = new Camera("id-2", "Backyard", false);
 
-        Assert.IsFalse(camera.IsConnected);
+        Assert.That(camera.IsConnected, Is.False);
     }
 
-    [TestMethod]
+    [Test]
     public void Equality_ComparesByValue()
     {
         var camera = new Camera("id-1", "Front Door", true);
         var same = new Camera("id-1", "Front Door", true);
         var other = new Camera("id-2", "Front Door", true);
 
-        Assert.AreEqual(camera, same);
-        Assert.AreNotEqual(camera, other);
+        Assert.That(same, Is.EqualTo(camera));
+        Assert.That(other, Is.Not.EqualTo(camera));
     }
 
-    [TestMethod]
+    [Test]
     public void ToString_ContainsTheFieldValues()
     {
         var camera = new Camera("abc", "Garage", false);
 
         var text = camera.ToString();
 
-        Assert.IsNotNull(text);
-        Assert.IsTrue(text.Contains("abc"));
+        Assert.That(text, Is.Not.Null);
+        Assert.That(text.Contains("abc"), Is.True);
     }
 }

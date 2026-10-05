@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <Platforms>x86;x64;ARM64</Platforms>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <SurveilPlatform>$(Platform)</SurveilPlatform>
+    <SurveilPlatform Condition="'$(SurveilPlatform)' == '' Or '$(SurveilPlatform)' == 'AnyCPU'">x64</SurveilPlatform>
+    <SurveilRuntimeIdentifier>win-$(SurveilPlatform.ToLowerInvariant())</SurveilRuntimeIdentifier>
+    <SurveilExePath>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\..\src\Surveil\bin\$(SurveilPlatform)\$(Configuration)\net10.0-windows10.0.19041.0\$(SurveilRuntimeIdentifier)\Surveil.exe'))</SurveilExePath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AssemblyMetadata Include="SurveilExePath" Value="$(SurveilExePath)" />
+    <AssemblyAttribute Include="WinUia.NUnit.UiTestAttribute" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="NUnit" />
+    <PackageReference Include="NUnit3TestAdapter" />
+    <PackageReference Include="NUnit.Analyzers" />
+    <PackageReference Include="GitHubActionsTestLogger" />
+    <PackageReference Include="WinUia" />
+    <PackageReference Include="WinUia.NUnit" />
+  </ItemGroup>
+</Project>
