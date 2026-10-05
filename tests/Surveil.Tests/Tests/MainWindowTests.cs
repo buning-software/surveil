@@ -23,6 +23,27 @@ public sealed class MainWindowTests
     }
 
     [Test]
+    public void Launch_OpensWindowWithinScreen()
+    {
+        if (_app.MainWindow.Parent is not { } desktop)
+        {
+            Assert.Fail("The main window has no desktop parent.");
+            return;
+        }
+
+        var window = _app.MainWindow.BoundingRectangle;
+        var screen = desktop.BoundingRectangle;
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(window.Left, Is.GreaterThanOrEqualTo(screen.Left));
+            Assert.That(window.Top, Is.GreaterThanOrEqualTo(screen.Top));
+            Assert.That(window.Right, Is.LessThanOrEqualTo(screen.Right));
+            Assert.That(window.Bottom, Is.LessThanOrEqualTo(screen.Bottom));
+        }
+    }
+
+    [Test]
     public void Launch_ShowsCamerasNavigationItem()
     {
         Assert.That(_app.Shell.CamerasItem.Name, Is.EqualTo("Cameras"));

@@ -4,6 +4,7 @@ using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Animation;
+using System;
 using System.Collections.Specialized;
 using System.Runtime.InteropServices;
 using Surveil.Application.Ports;
@@ -92,11 +93,13 @@ public sealed partial class MainWindow
 
     private void ResizeAndCenter()
     {
-        var display = DisplayArea.Primary;
-        var x = (display.OuterBounds.Width - WindowWidth) / 2;
-        var y = (display.OuterBounds.Height - WindowHeight) / 2;
+        var workArea = DisplayArea.Primary.WorkArea;
+        var width = Math.Min(WindowWidth, workArea.Width);
+        var height = Math.Min(WindowHeight, workArea.Height);
+        var x = workArea.X + (workArea.Width - width) / 2;
+        var y = workArea.Y + (workArea.Height - height) / 2;
 
-        AppWindow.MoveAndResize(new RectInt32(x, y, WindowWidth, WindowHeight));
+        AppWindow.MoveAndResize(new RectInt32(x, y, width, height));
         AppWindow.TitleBar.IconShowOptions = IconShowOptions.HideIconAndSystemMenu;
     }
 
