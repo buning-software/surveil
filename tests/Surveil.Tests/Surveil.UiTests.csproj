@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <AssemblyMetadata Include="SurveilExePath" Value="$(SurveilExePath)" />
+    <AssemblyAttribute Include="WinUia.NUnit.UiTestAttribute" />
   </ItemGroup>
 
   <ItemGroup>
