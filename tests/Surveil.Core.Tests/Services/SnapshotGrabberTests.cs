@@ -170,7 +170,7 @@ public sealed class SnapshotGrabberTests
         using var grabber = CreateGrabber(factory);
         using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
 
-        Assert.CatchAsync<OperationCanceledException>(() => grabber.GrabAsync(CameraId, cts.Token));
+        await Assert.CatchAsync<OperationCanceledException>(() => grabber.GrabAsync(CameraId, cts.Token));
 
         Assert.That(factory.Handles.TryPeek(out var handle), Is.True);
         Assert.That(handle?.IsDisposed, Is.True);

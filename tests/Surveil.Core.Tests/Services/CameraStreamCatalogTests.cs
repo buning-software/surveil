@@ -96,7 +96,7 @@ public sealed class CameraStreamCatalogTests
             .ThrowsAsync(new InvalidOperationException("unsupported"));
         using var catalog = CreateCatalog();
 
-        Assert.CatchAsync<InvalidOperationException>(() => catalog.GetStreamsAsync(CameraId));
+        await Assert.CatchAsync<InvalidOperationException>(() => catalog.GetStreamsAsync(CameraId));
     }
 
     [Test]
@@ -137,7 +137,7 @@ public sealed class CameraStreamCatalogTests
             .ReturnsAsync([High, Low]);
         using var catalog = CreateCatalog();
 
-        Assert.CatchAsync<InvalidOperationException>(() => catalog.GetStreamsAsync(CameraId));
+        await Assert.CatchAsync<InvalidOperationException>(() => catalog.GetStreamsAsync(CameraId));
         var streams = await catalog.GetStreamsAsync(CameraId);
 
         Assert.That(streams, Has.Count.EqualTo(2));
@@ -155,7 +155,7 @@ public sealed class CameraStreamCatalogTests
 
         var cancelled = catalog.GetStreamsAsync(CameraId, cts.Token);
         cts.Cancel();
-        Assert.CatchAsync<OperationCanceledException>(() => cancelled);
+        await Assert.CatchAsync<OperationCanceledException>(() => cancelled);
 
         var second = catalog.GetStreamsAsync(CameraId);
         pending.SetResult([High, Low]);

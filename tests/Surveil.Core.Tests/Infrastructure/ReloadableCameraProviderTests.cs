@@ -57,7 +57,7 @@ public sealed class ReloadableCameraProviderTests
         var cameras = await provider.GetCamerasAsync();
 
         Assert.That(cameras, Is.Empty);
-        Assert.CatchAsync<NotSupportedException>(() => provider.CreateRtspsStreamsAsync("cam1"));
+        await Assert.CatchAsync<NotSupportedException>(() => provider.CreateRtspsStreamsAsync("cam1"));
     }
 
     [Test]

@@ -98,9 +98,9 @@ public sealed class UnifiProtectApiClientTests
     {
         var client = CreateClient("Unauthorized", HttpStatusCode.Unauthorized);
 
-        var ex = Assert.CatchAsync<HttpRequestException>(() => client.GetCamerasAsync());
+        var ex = await Assert.CatchAsync<HttpRequestException>(() => client.GetCamerasAsync());
 
-        Assert.That(ex.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+        Assert.That(ex?.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
     }
 
     [Test]
@@ -108,9 +108,9 @@ public sealed class UnifiProtectApiClientTests
     {
         var client = CreateClient(new string('x', 400), HttpStatusCode.InternalServerError);
 
-        var ex = Assert.CatchAsync<HttpRequestException>(() => client.GetCamerasAsync());
+        var ex = await Assert.CatchAsync<HttpRequestException>(() => client.GetCamerasAsync());
 
-        Assert.That(ex.Message, Does.Contain("…"));
+        Assert.That(ex?.Message, Does.Contain("…"));
     }
 
     [Test]
@@ -118,7 +118,7 @@ public sealed class UnifiProtectApiClientTests
     {
         var client = CreateClient("not-json");
 
-        Assert.CatchAsync<InvalidOperationException>(() => client.GetCamerasAsync());
+        await Assert.CatchAsync<InvalidOperationException>(() => client.GetCamerasAsync());
     }
 
     [Test]
@@ -201,7 +201,7 @@ public sealed class UnifiProtectApiClientTests
     {
         var client = CreateClient("Not found", HttpStatusCode.NotFound);
 
-        Assert.CatchAsync<HttpRequestException>(() => client.GetRtspsStreamsAsync("cam1"));
+        await Assert.CatchAsync<HttpRequestException>(() => client.GetRtspsStreamsAsync("cam1"));
     }
 
     [Test]
@@ -220,7 +220,7 @@ public sealed class UnifiProtectApiClientTests
     {
         var client = CreateClient(StreamsJson());
 
-        Assert.CatchAsync<InvalidOperationException>(() => client.CreateRtspsStreamsAsync("cam1"));
+        await Assert.CatchAsync<InvalidOperationException>(() => client.CreateRtspsStreamsAsync("cam1"));
     }
 
     [Test]
@@ -228,7 +228,7 @@ public sealed class UnifiProtectApiClientTests
     {
         var client = CreateClient("Bad request", HttpStatusCode.BadRequest);
 
-        Assert.CatchAsync<HttpRequestException>(() => client.CreateRtspsStreamsAsync("cam1"));
+        await Assert.CatchAsync<HttpRequestException>(() => client.CreateRtspsStreamsAsync("cam1"));
     }
 
     [Test]
