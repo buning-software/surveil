@@ -1,13 +1,12 @@
+using System;
 using System.IO;
 using NUnit.Framework;
 using Surveil.UiTests.Application;
-using WinUia;
 using static WinUia.NUnit.UiAssertions;
 
 namespace Surveil.UiTests.Tests;
 
-[TestFixture]
-public class SettingsPageTests
+public class SettingsPageTests : SurveilFixture
 {
     private const string NotSavedTitle = "Not saved";
     private const string BaseUrlRequired = "Base URL is required.";
@@ -17,18 +16,10 @@ public class SettingsPageTests
     private const string ValidBaseUrl = "https://nvr.example.invalid";
     private const string FakeApiKey = "fake-api-key";
 
-    private SurveilApp _app = null!;
     private SettingsPage _settings = null!;
 
     [SetUp]
-    public void SetUp()
-    {
-        _app = App.Launch<SurveilApp>();
-        _settings = _app.Shell.OpenSettings();
-    }
-
-    [TearDown]
-    public void TearDown() => _app.Dispose();
+    public void OpenSettingsPage() => _settings = App.OpenSettings();
 
     [Test]
     public void OpenSettings_ShowsTitle()
@@ -39,7 +30,7 @@ public class SettingsPageTests
     [Test]
     public void OpenSettings_KeepsMenuAvailable()
     {
-        Assert.That(_settings.CamerasItem.Name, Is.EqualTo("Cameras"));
+        Assert.That(App.CamerasItem.Name, Is.EqualTo("Cameras"));
     }
 
     [TestCase("General")]
@@ -93,7 +84,7 @@ public class SettingsPageTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(_settings.ErrorTitle, Is.EqualTo(NotSavedTitle));
-            Assert.That(File.Exists(_app.SettingsFile), Is.False);
+            Assert.That(File.Exists(Data.SettingsFile), Is.False);
         }
     }
 
@@ -105,7 +96,7 @@ public class SettingsPageTests
         _settings.EnterBaseUrl("nvr.example.invalid");
 
         Eventually(() => _settings.ErrorMessage == BaseUrlInvalid, "a Base URL without a scheme is not an absolute URL");
-        Assert.That(File.Exists(_app.SettingsFile), Is.False);
+        Assert.That(File.Exists(Data.SettingsFile), Is.False);
     }
 
     [Test]
@@ -116,7 +107,7 @@ public class SettingsPageTests
         _settings.EnterBaseUrl(ValidBaseUrl);
 
         Eventually(() => _settings.ErrorMessage == ApiKeyRequired, "a valid Base URL still needs an API key");
-        Assert.That(File.Exists(_app.SettingsFile), Is.False);
+        Assert.That(File.Exists(Data.SettingsFile), Is.False);
     }
 
     [Test]
@@ -127,7 +118,7 @@ public class SettingsPageTests
         _settings.EnterUnifiConnection(ValidBaseUrl, FakeApiKey);
 
         Eventually(
-            () => _app.TryReadSettingsFile()?.Contains(ValidBaseUrl) == true,
+            () => Data.TryReadSettingsFile()?.Contains(ValidBaseUrl) == true,
             "valid settings apply immediately and are written to SURVEIL_DATA_DIR");
         Eventually(() => _settings.ErrorMessage is null, "a successful save closes the error");
     }

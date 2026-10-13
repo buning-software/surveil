@@ -1,72 +1,58 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using WinUia;
+using WinUia.Models;
 
 namespace Surveil.UiTests.Application;
 
 public sealed class SurveilApp : App
 {
-    private const string DataDirectoryVariable = "SURVEIL_DATA_DIR";
     private const string ExePathVariable = "SURVEIL_EXE";
+    private const string ExeName = "Surveil.exe";
+    private const string CaptionControlsClassName = "ReunionWindowingCaptionControls";
 
-    private static readonly TimeSpan WindowAbsentTimeout = TimeSpan.FromSeconds(1);
+    public bool IsMainWindowShown => TryFindWindow("Surveil", TimeSpan.FromSeconds(1)) is not null;
 
-    public string DataDirectory { get; } = Path.Combine(Path.GetTempPath(), $"surveil-ui-tests-{Guid.NewGuid():N}");
+    public Element NavigationView => MainWindow.FindByAutomationId("NavView");
 
-    public string SettingsFile => Path.Combine(DataDirectory, "settings.json");
+    public Element CamerasItem => MainWindow.FindByAutomationId("CamerasGroup");
 
-    public string? TryReadSettingsFile()
+    public Element SettingsItem => MainWindow.FindByAutomationId("SettingsItem");
+
+    public Element CloseButton => MainWindow
+        .Find(e => e.ClassName == CaptionControlsClassName, TreeScope.Children)
+        .FindByAutomationId("Close");
+
+    protected override string ExecutablePath => Environment.GetEnvironmentVariable(ExePathVariable) is { Length: > 0 } overridden
+        ? overridden
+        : FindBuiltExecutable();
+
+    protected override AppLaunchOptions DefaultOptions => new() { ShowPointer = true };
+
+    public SettingsPage OpenSettings()
     {
-        try
-        {
-            return File.Exists(SettingsFile) ? File.ReadAllText(SettingsFile) : null;
-        }
-        catch (IOException)
-        {
-            return null;
-        }
+        SettingsItem.Click();
+        return new SettingsPage(MainWindow);
     }
 
-    protected override string ExecutablePath
+    private static string FindBuiltExecutable()
     {
-        get
-        {
-            var path = Environment.GetEnvironmentVariable(ExePathVariable) is { Length: > 0 } overridden
-                ? overridden
-                : typeof(SurveilApp).Assembly
-                    .GetCustomAttributes<AssemblyMetadataAttribute>()
-                    .Single(a => a.Key == "SurveilExePath")
-                    .Value;
+        var binDirectory = typeof(SurveilApp).Assembly
+            .GetCustomAttributes<AssemblyMetadataAttribute>()
+            .Single(a => a.Key == "SurveilBinDirectory")
+            .Value ?? string.Empty;
 
-            if (string.IsNullOrEmpty(path) || !File.Exists(path))
-                throw new FileNotFoundException(
-                    $"Surveil.exe not found at '{path}'. Build src/Surveil for the same configuration and platform first, or set {ExePathVariable}.");
+        var executables = Directory.Exists(binDirectory)
+            ? Directory.EnumerateFiles(binDirectory, ExeName, SearchOption.AllDirectories)
+                .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}AppX{Path.DirectorySeparatorChar}"))
+                .ToArray()
+            : [];
 
-            return path;
-        }
-    }
-
-    protected override AppLaunchOptions DefaultOptions => new()
-    {
-        ShowPointer = true,
-        Environment = new Dictionary<string, string?> { [DataDirectoryVariable] = DataDirectory }
-    };
-
-    public Layout Shell => field ??= new Layout(MainWindow);
-
-    public bool IsMainWindowShown => TryFindWindow("Surveil", WindowAbsentTimeout) is not null;
-
-    protected override void Dispose(bool disposing)
-    {
-        if (disposing)
-            Close(TimeSpan.Zero);
-
-        base.Dispose(disposing);
-
-        if (disposing && Directory.Exists(DataDirectory))
-            Directory.Delete(DataDirectory, recursive: true);
+        return executables.Length == 1
+            ? executables[0]
+            : throw new FileNotFoundException(
+                $"Expected exactly one {ExeName} under '{binDirectory}' but found {executables.Length}. Build src/Surveil for the same configuration and platform first, or set {ExePathVariable}.");
     }
 }

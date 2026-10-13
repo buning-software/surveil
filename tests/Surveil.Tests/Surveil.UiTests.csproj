@@ -12,12 +12,11 @@
   <PropertyGroup>
     <SurveilPlatform>$(Platform)</SurveilPlatform>
     <SurveilPlatform Condition="'$(SurveilPlatform)' == '' Or '$(SurveilPlatform)' == 'AnyCPU'">x64</SurveilPlatform>
-    <SurveilRuntimeIdentifier>win-$(SurveilPlatform.ToLowerInvariant())</SurveilRuntimeIdentifier>
-    <SurveilExePath>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\..\src\Surveil\bin\$(SurveilPlatform)\$(Configuration)\net10.0-windows10.0.19041.0\$(SurveilRuntimeIdentifier)\Surveil.exe'))</SurveilExePath>
+    <SurveilBinDirectory>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\..\src\Surveil\bin\$(SurveilPlatform)\$(Configuration)'))</SurveilBinDirectory>
   </PropertyGroup>
 
   <ItemGroup>
-    <AssemblyMetadata Include="SurveilExePath" Value="$(SurveilExePath)" />
+    <AssemblyMetadata Include="SurveilBinDirectory" Value="$(SurveilBinDirectory)" />
     <AssemblyAttribute Include="WinUia.NUnit.UiTestAttribute" />
   </ItemGroup>
 

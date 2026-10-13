@@ -1,11 +1,13 @@
 using System;
 using System.Linq;
-using WinUia.Core;
+using WinUia;
 
 namespace Surveil.UiTests.Application;
 
-public sealed class SettingsPage(Element window) : Layout(window)
+public sealed class SettingsPage(Element window)
 {
+    private Element Window { get; } = window;
+
     private static readonly TimeSpan AbsentTimeout = TimeSpan.FromSeconds(1);
 
     public Element Title => Window.Find(e => e.ControlType == ControlType.Text && e.Name == "Settings");
