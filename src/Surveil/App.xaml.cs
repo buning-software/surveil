@@ -25,8 +25,19 @@ namespace Surveil;
 
 public sealed partial class App
 {
-    private static string DefaultSnapshotPath =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Surveil", "snapshots", "snapshot.jpg");
+    private const string DataDirectoryVariable = "SURVEIL_DATA_DIR";
+    private const string InstanceKey = "Surveil";
+
+    private static string? DataDirectoryOverride =>
+        Environment.GetEnvironmentVariable(DataDirectoryVariable) is { Length: > 0 } dir ? dir : null;
+
+    private static string DataDirectory =>
+        DataDirectoryOverride ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Surveil");
+
+    private static string DefaultSnapshotPath => Path.Combine(DataDirectory, "snapshots", "snapshot.jpg");
+
+    private static string CurrentInstanceKey =>
+        DataDirectoryOverride is { } dir ? $"{InstanceKey}-{Path.GetFullPath(dir)}" : InstanceKey;
 
     private MainWindow? _mainWindow;
     private bool _isShowingErrorDialog;
@@ -38,7 +49,7 @@ public sealed partial class App
             UnhandledException += OnUnhandledException;
 
             var activationArgs = AppInstance.GetCurrent().GetActivatedEventArgs();
-            var keyInstance = AppInstance.FindOrRegisterForKey("Surveil");
+            var keyInstance = AppInstance.FindOrRegisterForKey(CurrentInstanceKey);
 
             if (!keyInstance.IsCurrent)
             {
@@ -73,7 +84,7 @@ public sealed partial class App
 
     private static async Task AddAppServicesAsync(IServiceCollection services)
     {
-        var settingsRepository = new JsonAppSettingsRepository();
+        var settingsRepository = new JsonAppSettingsRepository(DataDirectory);
         var appSettings = await settingsRepository.LoadAsync();
 
         services.AddSingleton(new SnapshotOptions(appSettings.UnifiProtect.SnapshotPath ?? DefaultSnapshotPath));

@@ -3,12 +3,12 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NUnit.Framework;
 using Surveil.Services;
 
 namespace Surveil.Core.Tests.Services;
 
-[TestClass]
+[TestFixture]
 public sealed class ProgressiveVideoPlayerTests
 {
     private const string HighUrl = "rtsp://host/high";
@@ -85,44 +85,44 @@ public sealed class ProgressiveVideoPlayerTests
             await Task.Delay(10);
     }
 
-    [TestMethod]
+    [Test]
     public void Constructor_NoUrls_Throws()
     {
-        Assert.ThrowsExactly<ArgumentException>(() => new ProgressiveVideoPlayer([], _factory));
+        Assert.Throws<ArgumentException>(() => new ProgressiveVideoPlayer([], _factory));
     }
 
-    [TestMethod]
+    [Test]
     public void Start_TwoQualities_OpensBothStreams()
     {
         using var player = CreatePlayer(HighUrl, LowUrl);
 
         player.Start();
 
-        CollectionAssert.AreEquivalent(new[] { HighUrl, LowUrl }, _factory.Handles.Select(h => h.Url).ToArray());
+        Assert.That(_factory.Handles.Select(h => h.Url).ToArray(), Is.EquivalentTo(new[] { HighUrl, LowUrl }));
     }
 
-    [TestMethod]
+    [Test]
     public void Start_SingleQuality_OpensOnlyThatStream()
     {
         using var player = CreatePlayer(HighUrl);
 
         player.Start();
 
-        Assert.ContainsSingle(_factory.Handles);
-        Assert.AreEqual(HighUrl, _factory.Handles[0].Url);
+        Assert.That(_factory.Handles, Has.Exactly(1).Items);
+        Assert.That(_factory.Handles[0].Url, Is.EqualTo(HighUrl));
     }
 
-    [TestMethod]
+    [Test]
     public void Start_SameUrlForBothEnds_OpensOneStream()
     {
         using var player = CreatePlayer(HighUrl, HighUrl);
 
         player.Start();
 
-        Assert.ContainsSingle(_factory.Handles);
+        Assert.That(_factory.Handles, Has.Exactly(1).Items);
     }
 
-    [TestMethod]
+    [Test]
     public void PreviewFrame_BeforeTheBestStreamDelivers_IsForwarded()
     {
         using var player = CreatePlayer(HighUrl, LowUrl);
@@ -130,11 +130,11 @@ public sealed class ProgressiveVideoPlayerTests
 
         var frame = _factory.Latest(LowUrl).RaiseFrame(width: 2);
 
-        Assert.ContainsSingle(_forwarded);
-        Assert.AreSame(frame, _forwarded[0]);
+        Assert.That(_forwarded, Has.Exactly(1).Items);
+        Assert.That(_forwarded[0], Is.SameAs(frame));
     }
 
-    [TestMethod]
+    [Test]
     public void BestStreamFrame_IsForwarded()
     {
         using var player = CreatePlayer(HighUrl, LowUrl);
@@ -142,11 +142,11 @@ public sealed class ProgressiveVideoPlayerTests
 
         var frame = _factory.Latest(HighUrl).RaiseFrame(width: 8);
 
-        Assert.ContainsSingle(_forwarded);
-        Assert.AreSame(frame, _forwarded[0]);
+        Assert.That(_forwarded, Has.Exactly(1).Items);
+        Assert.That(_forwarded[0], Is.SameAs(frame));
     }
 
-    [TestMethod]
+    [Test]
     public void PreviewFrame_AfterTheBestStreamDelivered_IsDropped()
     {
         using var player = CreatePlayer(HighUrl, LowUrl);
@@ -156,11 +156,11 @@ public sealed class ProgressiveVideoPlayerTests
 
         preview.RaiseFrame(width: 2);
 
-        Assert.ContainsSingle(_forwarded);
-        Assert.AreEqual(8, _forwarded[0].Width);
+        Assert.That(_forwarded, Has.Exactly(1).Items);
+        Assert.That(_forwarded[0].Width, Is.EqualTo(8));
     }
 
-    [TestMethod]
+    [Test]
     public async Task BestStreamFirstFrame_StopsThePreviewStream()
     {
         using var player = CreatePlayer(HighUrl, LowUrl);
@@ -170,11 +170,11 @@ public sealed class ProgressiveVideoPlayerTests
         _factory.Latest(HighUrl).RaiseFrame(width: 8);
         await WaitUntilAsync(() => preview.IsDisposed);
 
-        Assert.IsTrue(preview.IsDisposed);
-        Assert.IsFalse(_factory.Latest(HighUrl).IsDisposed);
+        Assert.That(preview.IsDisposed, Is.True);
+        Assert.That(_factory.Latest(HighUrl).IsDisposed, Is.False);
     }
 
-    [TestMethod]
+    [Test]
     public void Status_FromTheBestStreamBeforeItTakesOver_IsSuppressed()
     {
         using var player = CreatePlayer(HighUrl, LowUrl);
@@ -183,10 +183,10 @@ public sealed class ProgressiveVideoPlayerTests
 
         _factory.Latest(HighUrl).RaisePlaying();
 
-        Assert.IsEmpty(_statuses);
+        Assert.That(_statuses, Is.Empty);
     }
 
-    [TestMethod]
+    [Test]
     public void Status_FromThePreviewStream_IsForwarded()
     {
         using var player = CreatePlayer(HighUrl, LowUrl);
@@ -195,10 +195,10 @@ public sealed class ProgressiveVideoPlayerTests
 
         _factory.Latest(LowUrl).RaisePlaying();
 
-        Assert.AreEqual("Connected", _statuses.Single());
+        Assert.That(_statuses.Single(), Is.EqualTo("Connected"));
     }
 
-    [TestMethod]
+    [Test]
     public void Status_FromTheBestStreamAfterItTookOver_IsForwarded()
     {
         using var player = CreatePlayer(HighUrl, LowUrl);
@@ -208,10 +208,10 @@ public sealed class ProgressiveVideoPlayerTests
 
         _factory.Latest(HighUrl).RaisePlaying();
 
-        Assert.AreEqual("Connected", _statuses.Single());
+        Assert.That(_statuses.Single(), Is.EqualTo("Connected"));
     }
 
-    [TestMethod]
+    [Test]
     public void Stop_StopsBothStreams()
     {
         using var player = CreatePlayer(HighUrl, LowUrl);
@@ -219,10 +219,10 @@ public sealed class ProgressiveVideoPlayerTests
 
         player.Stop();
 
-        Assert.IsTrue(_factory.Handles.All(h => h.IsDisposed));
+        Assert.That(_factory.Handles.All(h => h.IsDisposed), Is.True);
     }
 
-    [TestMethod]
+    [Test]
     public void Dispose_DisposesBothStreams()
     {
         var player = CreatePlayer(HighUrl, LowUrl);
@@ -230,10 +230,10 @@ public sealed class ProgressiveVideoPlayerTests
 
         player.Dispose();
 
-        Assert.IsTrue(_factory.Handles.All(h => h.IsDisposed));
+        Assert.That(_factory.Handles.All(h => h.IsDisposed), Is.True);
     }
 
-    [TestMethod]
+    [Test]
     public void Start_AfterTheBestStreamTookOver_ShowsThePreviewAgain()
     {
         using var player = CreatePlayer(HighUrl, LowUrl);
@@ -245,7 +245,7 @@ public sealed class ProgressiveVideoPlayerTests
         player.Start();
         _factory.Latest(LowUrl).RaiseFrame(width: 2);
 
-        Assert.ContainsSingle(_forwarded);
-        Assert.AreEqual(2, _forwarded[0].Width);
+        Assert.That(_forwarded, Has.Exactly(1).Items);
+        Assert.That(_forwarded[0].Width, Is.EqualTo(2));
     }
 }

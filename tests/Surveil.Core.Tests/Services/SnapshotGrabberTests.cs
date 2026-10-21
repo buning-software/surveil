@@ -4,14 +4,14 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NUnit.Framework;
 using Moq;
 using Surveil.Domain.Cameras;
 using Surveil.Services;
 
 namespace Surveil.Core.Tests.Services;
 
-[TestClass]
+[TestFixture]
 public sealed class SnapshotGrabberTests
 {
     private const string CameraId = "cam-1";
@@ -85,7 +85,7 @@ public sealed class SnapshotGrabberTests
     private SnapshotGrabber CreateGrabber(TestVlcFactory factory, TimeSpan? timeout = null, Func<int, int, byte[], Task>? save = null) =>
         new(_catalog.Object, factory, save ?? Save, timeout ?? LongTimeout);
 
-    [TestMethod]
+    [Test]
     public async Task GrabAsync_FirstFrame_SavesFrameAndReturnsTrue()
     {
         var factory = new TestVlcFactory(framesOnPlay: 1);
@@ -93,12 +93,12 @@ public sealed class SnapshotGrabberTests
 
         var result = await grabber.GrabAsync(CameraId);
 
-        Assert.IsTrue(result);
-        Assert.ContainsSingle(_saved);
-        Assert.AreEqual(new SavedFrame(4, 4, 4 * 4 * 4), _saved[0]);
+        Assert.That(result, Is.True);
+        Assert.That(_saved, Has.Exactly(1).Items);
+        Assert.That(_saved[0], Is.EqualTo(new SavedFrame(4, 4, 4 * 4 * 4)));
     }
 
-    [TestMethod]
+    [Test]
     public async Task GrabAsync_FirstFrame_DisposesHandle()
     {
         var factory = new TestVlcFactory(framesOnPlay: 1);
@@ -106,11 +106,11 @@ public sealed class SnapshotGrabberTests
 
         await grabber.GrabAsync(CameraId);
 
-        Assert.IsTrue(factory.Handles.TryPeek(out var handle));
-        Assert.IsTrue(handle.IsDisposed);
+        Assert.That(factory.Handles.TryPeek(out var handle), Is.True);
+        Assert.That(handle?.IsDisposed, Is.True);
     }
 
-    [TestMethod]
+    [Test]
     public async Task GrabAsync_SeveralFrames_SavesOnlyTheFirst()
     {
         var factory = new TestVlcFactory(framesOnPlay: 3);
@@ -118,11 +118,11 @@ public sealed class SnapshotGrabberTests
 
         await grabber.GrabAsync(CameraId);
 
-        Assert.ContainsSingle(_saved);
-        Assert.AreEqual(4, _saved[0].Width);
+        Assert.That(_saved, Has.Exactly(1).Items);
+        Assert.That(_saved[0].Width, Is.EqualTo(4));
     }
 
-    [TestMethod]
+    [Test]
     public async Task GrabAsync_SeveralQualities_UsesTheLowestStream()
     {
         var factory = new TestVlcFactory(framesOnPlay: 1);
@@ -130,11 +130,11 @@ public sealed class SnapshotGrabberTests
 
         await grabber.GrabAsync(CameraId);
 
-        Assert.IsTrue(factory.Urls.TryPeek(out var url));
-        Assert.AreEqual(LowUrl, url);
+        Assert.That(factory.Urls.TryPeek(out var url), Is.True);
+        Assert.That(url, Is.EqualTo(LowUrl));
     }
 
-    [TestMethod]
+    [Test]
     public async Task GrabAsync_SingleQuality_UsesIt()
     {
         _catalog
@@ -145,11 +145,11 @@ public sealed class SnapshotGrabberTests
 
         await grabber.GrabAsync(CameraId);
 
-        Assert.IsTrue(factory.Urls.TryPeek(out var url));
-        Assert.AreEqual(HighUrl, url);
+        Assert.That(factory.Urls.TryPeek(out var url), Is.True);
+        Assert.That(url, Is.EqualTo(HighUrl));
     }
 
-    [TestMethod]
+    [Test]
     public async Task GrabAsync_NoFrameBeforeTimeout_ReturnsFalseAndDisposesHandle()
     {
         var factory = new TestVlcFactory(framesOnPlay: 0);
@@ -157,26 +157,26 @@ public sealed class SnapshotGrabberTests
 
         var result = await grabber.GrabAsync(CameraId);
 
-        Assert.IsFalse(result);
-        Assert.IsEmpty(_saved);
-        Assert.IsTrue(factory.Handles.TryPeek(out var handle));
-        Assert.IsTrue(handle.IsDisposed);
+        Assert.That(result, Is.False);
+        Assert.That(_saved, Is.Empty);
+        Assert.That(factory.Handles.TryPeek(out var handle), Is.True);
+        Assert.That(handle?.IsDisposed, Is.True);
     }
 
-    [TestMethod]
+    [Test]
     public async Task GrabAsync_Cancelled_ThrowsAndDisposesHandle()
     {
         var factory = new TestVlcFactory(framesOnPlay: 0);
         using var grabber = CreateGrabber(factory);
         using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
 
-        await Assert.ThrowsAsync<OperationCanceledException>(() => grabber.GrabAsync(CameraId, cts.Token));
+        await Assert.CatchAsync<OperationCanceledException>(() => grabber.GrabAsync(CameraId, cts.Token));
 
-        Assert.IsTrue(factory.Handles.TryPeek(out var handle));
-        Assert.IsTrue(handle.IsDisposed);
+        Assert.That(factory.Handles.TryPeek(out var handle), Is.True);
+        Assert.That(handle?.IsDisposed, Is.True);
     }
 
-    [TestMethod]
+    [Test]
     public async Task GrabAsync_CatalogThrows_ReturnsFalse()
     {
         _catalog
@@ -187,11 +187,11 @@ public sealed class SnapshotGrabberTests
 
         var result = await grabber.GrabAsync(CameraId);
 
-        Assert.IsFalse(result);
-        Assert.IsEmpty(factory.Handles);
+        Assert.That(result, Is.False);
+        Assert.That(factory.Handles, Is.Empty);
     }
 
-    [TestMethod]
+    [Test]
     public async Task GrabAsync_SaveThrows_ReturnsFalse()
     {
         var factory = new TestVlcFactory(framesOnPlay: 1);
@@ -199,10 +199,10 @@ public sealed class SnapshotGrabberTests
 
         var result = await grabber.GrabAsync(CameraId);
 
-        Assert.IsFalse(result);
+        Assert.That(result, Is.False);
     }
 
-    [TestMethod]
+    [Test]
     public async Task GrabAsync_CalledConcurrently_RunsOneAtATime()
     {
         var releaseFirstSave = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -221,12 +221,12 @@ public sealed class SnapshotGrabberTests
         var second = grabber.GrabAsync(CameraId);
         await Task.Delay(50);
 
-        Assert.HasCount(1, factory.Handles);
+        Assert.That(factory.Handles, Has.Count.EqualTo(1));
 
         releaseFirstSave.SetResult();
         await Task.WhenAll(first, second).WaitAsync(LongTimeout);
 
-        Assert.HasCount(2, factory.Handles);
-        Assert.AreEqual(2, saveCount);
+        Assert.That(factory.Handles, Has.Count.EqualTo(2));
+        Assert.That(saveCount, Is.EqualTo(2));
     }
 }

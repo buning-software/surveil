@@ -6,7 +6,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NUnit.Framework;
 
 namespace Surveil.Unifi.Tests;
 
@@ -38,7 +38,7 @@ internal sealed class RecordingHttpHandler(Func<HttpRequestMessage, string> resp
     }
 }
 
-[TestClass]
+[TestFixture]
 public sealed class UnifiProtectApiClientTests
 {
     private static UnifiProtectApiClient CreateClient(
@@ -62,7 +62,7 @@ public sealed class UnifiProtectApiClientTests
 
     private static string Quote(string? url) => url is null ? "null" : $"\"{url}\"";
 
-    [TestMethod]
+    [Test]
     public async Task GetCamerasAsync_ValidJson_ReturnsMappedCameras()
     {
         const string json = """
@@ -75,163 +75,163 @@ public sealed class UnifiProtectApiClientTests
 
         var cameras = await client.GetCamerasAsync();
 
-        Assert.HasCount(2, cameras);
-        Assert.AreEqual("cam1", cameras[0].Id);
-        Assert.AreEqual("Front Door", cameras[0].Name);
-        Assert.IsTrue(cameras[0].IsConnected);
-        Assert.AreEqual("cam2", cameras[1].Id);
-        Assert.IsFalse(cameras[1].IsConnected);
+        Assert.That(cameras, Has.Count.EqualTo(2));
+        Assert.That(cameras[0].Id, Is.EqualTo("cam1"));
+        Assert.That(cameras[0].Name, Is.EqualTo("Front Door"));
+        Assert.That(cameras[0].IsConnected, Is.True);
+        Assert.That(cameras[1].Id, Is.EqualTo("cam2"));
+        Assert.That(cameras[1].IsConnected, Is.False);
     }
 
-    [TestMethod]
+    [Test]
     public async Task GetCamerasAsync_EmptyArray_ReturnsEmptyList()
     {
         var client = CreateClient("[]");
 
         var cameras = await client.GetCamerasAsync();
 
-        Assert.IsEmpty(cameras);
+        Assert.That(cameras, Is.Empty);
     }
 
-    [TestMethod]
+    [Test]
     public async Task GetCamerasAsync_ServerError_ThrowsHttpRequestException()
     {
         var client = CreateClient("Unauthorized", HttpStatusCode.Unauthorized);
 
-        var ex = await Assert.ThrowsAsync<HttpRequestException>(() => client.GetCamerasAsync());
+        var ex = await Assert.CatchAsync<HttpRequestException>(() => client.GetCamerasAsync());
 
-        Assert.AreEqual(HttpStatusCode.Unauthorized, ex.StatusCode);
+        Assert.That(ex?.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
     }
 
-    [TestMethod]
+    [Test]
     public async Task GetCamerasAsync_LongErrorBody_TruncatesTo300Chars()
     {
         var client = CreateClient(new string('x', 400), HttpStatusCode.InternalServerError);
 
-        var ex = await Assert.ThrowsAsync<HttpRequestException>(() => client.GetCamerasAsync());
+        var ex = await Assert.CatchAsync<HttpRequestException>(() => client.GetCamerasAsync());
 
-        Assert.Contains("…", ex.Message);
+        Assert.That(ex?.Message, Does.Contain("…"));
     }
 
-    [TestMethod]
+    [Test]
     public async Task GetCamerasAsync_InvalidJson_ThrowsInvalidOperationException()
     {
         var client = CreateClient("not-json");
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => client.GetCamerasAsync());
+        await Assert.CatchAsync<InvalidOperationException>(() => client.GetCamerasAsync());
     }
 
-    [TestMethod]
+    [Test]
     public async Task GetRtspsStreamsAsync_HighQualityPresent_ReturnsHighStream()
     {
         var client = CreateClient(StreamsJson(high: "rtsps://host/high"));
 
         var streams = await client.GetRtspsStreamsAsync("cam1");
 
-        Assert.ContainsSingle(streams);
-        Assert.AreEqual("rtsp://host/high", streams[0].Url);
-        Assert.AreEqual("high", streams[0].StreamName);
+        Assert.That(streams, Has.Exactly(1).Items);
+        Assert.That(streams[0].Url, Is.EqualTo("rtsp://host/high"));
+        Assert.That(streams[0].StreamName, Is.EqualTo("high"));
     }
 
-    [TestMethod]
+    [Test]
     public async Task GetRtspsStreamsAsync_NoHighOnlyMedium_ReturnsMediumStream()
     {
         var client = CreateClient(StreamsJson(medium: "rtsps://host/medium"));
 
         var streams = await client.GetRtspsStreamsAsync("cam1");
 
-        Assert.ContainsSingle(streams);
-        Assert.AreEqual("medium", streams[0].StreamName);
+        Assert.That(streams, Has.Exactly(1).Items);
+        Assert.That(streams[0].StreamName, Is.EqualTo("medium"));
     }
 
-    [TestMethod]
+    [Test]
     public async Task GetRtspsStreamsAsync_OnlyLow_ReturnsLowStream()
     {
         var client = CreateClient(StreamsJson(low: "rtsps://host/low"));
 
         var streams = await client.GetRtspsStreamsAsync("cam1");
 
-        Assert.ContainsSingle(streams);
-        Assert.AreEqual("low", streams[0].StreamName);
+        Assert.That(streams, Has.Exactly(1).Items);
+        Assert.That(streams[0].StreamName, Is.EqualTo("low"));
     }
 
-    [TestMethod]
+    [Test]
     public async Task GetRtspsStreamsAsync_OnlyPackage_ReturnsPackageStream()
     {
         var client = CreateClient(StreamsJson(package: "rtsps://host/pkg"));
 
         var streams = await client.GetRtspsStreamsAsync("cam1");
 
-        Assert.ContainsSingle(streams);
-        Assert.AreEqual("package", streams[0].StreamName);
+        Assert.That(streams, Has.Exactly(1).Items);
+        Assert.That(streams[0].StreamName, Is.EqualTo("package"));
     }
 
-    [TestMethod]
+    [Test]
     public async Task GetRtspsStreamsAsync_AllNull_ReturnsEmptyList()
     {
         var client = CreateClient(StreamsJson());
 
         var streams = await client.GetRtspsStreamsAsync("cam1");
 
-        Assert.IsEmpty(streams);
+        Assert.That(streams, Is.Empty);
     }
 
-    [TestMethod]
+    [Test]
     public async Task GetRtspsStreamsAsync_PortAndSrtpQuery_NormalizedForLibVlc()
     {
         var client = CreateClient(StreamsJson(high: "rtsps://host:7441/stream?enableSrtp"));
 
         var streams = await client.GetRtspsStreamsAsync("cam1");
 
-        Assert.AreEqual("rtsp://host:7447/stream", streams[0].Url);
+        Assert.That(streams[0].Url, Is.EqualTo("rtsp://host:7447/stream"));
     }
 
-    [TestMethod]
+    [Test]
     public async Task GetRtspsStreamsAsync_HostDiffersFromReachableHost_RewritesHost()
     {
         var client = CreateClient(StreamsJson(high: "rtsps://console-lan-ip/stream"), reachableHost: "host");
 
         var streams = await client.GetRtspsStreamsAsync("cam1");
 
-        Assert.AreEqual("rtsp://host/stream", streams[0].Url);
+        Assert.That(streams[0].Url, Is.EqualTo("rtsp://host/stream"));
     }
 
-    [TestMethod]
+    [Test]
     public async Task GetRtspsStreamsAsync_ServerError_ThrowsHttpRequestException()
     {
         var client = CreateClient("Not found", HttpStatusCode.NotFound);
 
-        await Assert.ThrowsAsync<HttpRequestException>(() => client.GetRtspsStreamsAsync("cam1"));
+        await Assert.CatchAsync<HttpRequestException>(() => client.GetRtspsStreamsAsync("cam1"));
     }
 
-    [TestMethod]
+    [Test]
     public async Task CreateRtspsStreamsAsync_SuccessWithHighUrl_ReturnsHighStream()
     {
         var client = CreateClient(StreamsJson(high: "rtsps://host/high"));
 
         var streams = await client.CreateRtspsStreamsAsync("cam1");
 
-        Assert.AreEqual("rtsp://host/high", streams[0].Url);
-        Assert.AreEqual("high", streams[0].StreamName);
+        Assert.That(streams[0].Url, Is.EqualTo("rtsp://host/high"));
+        Assert.That(streams[0].StreamName, Is.EqualTo("high"));
     }
 
-    [TestMethod]
+    [Test]
     public async Task CreateRtspsStreamsAsync_AllUrlsNull_ThrowsInvalidOperationException()
     {
         var client = CreateClient(StreamsJson());
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => client.CreateRtspsStreamsAsync("cam1"));
+        await Assert.CatchAsync<InvalidOperationException>(() => client.CreateRtspsStreamsAsync("cam1"));
     }
 
-    [TestMethod]
+    [Test]
     public async Task CreateRtspsStreamsAsync_ServerError_ThrowsHttpRequestException()
     {
         var client = CreateClient("Bad request", HttpStatusCode.BadRequest);
 
-        await Assert.ThrowsAsync<HttpRequestException>(() => client.CreateRtspsStreamsAsync("cam1"));
+        await Assert.CatchAsync<HttpRequestException>(() => client.CreateRtspsStreamsAsync("cam1"));
     }
 
-    [TestMethod]
+    [Test]
     public async Task CreateRtspsStreamsAsync_WithCancellationToken_PassesToken()
     {
         var client = CreateClient(StreamsJson(high: "rtsps://host/high"));
@@ -239,30 +239,30 @@ public sealed class UnifiProtectApiClientTests
 
         var streams = await client.CreateRtspsStreamsAsync("cam1", cts.Token);
 
-        Assert.IsNotEmpty(streams);
+        Assert.That(streams, Is.Not.Empty);
     }
 
-    [TestMethod]
+    [Test]
     public async Task GetRtspsStreamsAsync_AllQualities_ReturnsBestFirst()
     {
         var client = CreateClient(StreamsJson(high: "rtsps://host/high", medium: "rtsps://host/medium", low: "rtsps://host/low"));
 
         var streams = await client.GetRtspsStreamsAsync("cam1");
 
-        CollectionAssert.AreEqual(new[] { "high", "medium", "low" }, streams.Select(s => s.StreamName).ToArray());
+        Assert.That(streams.Select(s => s.StreamName).ToArray(), Is.EqualTo(new[] { "high", "medium", "low" }));
     }
 
-    [TestMethod]
+    [Test]
     public async Task GetRtspsStreamsAsync_PackageAlongsideMainLens_ExcludesPackage()
     {
         var client = CreateClient(StreamsJson(high: "rtsps://host/high", low: "rtsps://host/low", package: "rtsps://host/pkg"));
 
         var streams = await client.GetRtspsStreamsAsync("cam1");
 
-        CollectionAssert.AreEqual(new[] { "high", "low" }, streams.Select(s => s.StreamName).ToArray());
+        Assert.That(streams.Select(s => s.StreamName).ToArray(), Is.EqualTo(new[] { "high", "low" }));
     }
 
-    [TestMethod]
+    [Test]
     public async Task CreateRtspsStreamsAsync_PostsHighAndLowPlusExistingQualities()
     {
         var (client, handler) = CreateRecordingClient(
@@ -272,10 +272,10 @@ public sealed class UnifiProtectApiClientTests
         await client.CreateRtspsStreamsAsync("cam1");
 
         var post = handler.Requests.Single(r => r.Method == HttpMethod.Post);
-        Assert.AreEqual("""{"qualities":["medium","high","low"]}""", post.Body);
+        Assert.That(post.Body, Is.EqualTo("""{"qualities":["medium","high","low"]}"""));
     }
 
-    [TestMethod]
+    [Test]
     public async Task CreateRtspsStreamsAsync_ReturnsEveryCreatedQualityBestFirst()
     {
         var (client, _) = CreateRecordingClient(
@@ -284,6 +284,6 @@ public sealed class UnifiProtectApiClientTests
 
         var streams = await client.CreateRtspsStreamsAsync("cam1");
 
-        CollectionAssert.AreEqual(new[] { "high", "low" }, streams.Select(s => s.StreamName).ToArray());
+        Assert.That(streams.Select(s => s.StreamName).ToArray(), Is.EqualTo(new[] { "high", "low" }));
     }
 }

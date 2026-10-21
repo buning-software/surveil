@@ -1,13 +1,14 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NUnit.Framework;
 using Moq;
 using Surveil.Services;
 
 namespace Surveil.Core.Tests.Services;
 
-[TestClass]
+[TestFixture]
+[FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
 public sealed class RtspVideoPlayerTests
 {
     private sealed class TestVlcHandle : IVlcPlayerHandle
@@ -52,6 +53,9 @@ public sealed class RtspVideoPlayerTests
         _player = new RtspVideoPlayer("rtsps://host/stream", _factory);
     }
 
+    [TearDown]
+    public void TearDown() => _player.Dispose();
+
     private List<string> CaptureStatuses()
     {
         var statuses = new List<string>();
@@ -59,25 +63,25 @@ public sealed class RtspVideoPlayerTests
         return statuses;
     }
 
-    [TestMethod]
+    [Test]
     public void Start_CallsHandlePlay()
     {
         _player.Start();
 
-        Assert.AreEqual(1, _handle.PlayCallCount);
+        Assert.That(_handle.PlayCallCount, Is.EqualTo(1));
     }
 
-    [TestMethod]
+    [Test]
     public void Start_RaisesStatusChangedConnecting()
     {
         var statuses = CaptureStatuses();
 
         _player.Start();
 
-        Assert.AreEqual("Connecting...", statuses[^1]);
+        Assert.That(statuses[^1], Is.EqualTo("Connecting..."));
     }
 
-    [TestMethod]
+    [Test]
     public void Start_CalledTwice_DisposesFirstHandleBeforeCreatingNew()
     {
         var firstHandle = new TestVlcHandle();
@@ -91,44 +95,44 @@ public sealed class RtspVideoPlayerTests
         player.Start();
         player.Start();
 
-        Assert.IsTrue(firstHandle.IsDisposed);
-        Assert.AreEqual(1, secondHandle.PlayCallCount);
+        Assert.That(firstHandle.IsDisposed, Is.True);
+        Assert.That(secondHandle.PlayCallCount, Is.EqualTo(1));
     }
 
-    [TestMethod]
+    [Test]
     public void Stop_DisposesHandle()
     {
         _player.Start();
 
         _player.Stop();
 
-        Assert.IsTrue(_handle.IsDisposed);
+        Assert.That(_handle.IsDisposed, Is.True);
     }
 
-    [TestMethod]
+    [Test]
     public void Stop_WithoutStart_DoesNotThrow()
     {
         _player.Stop();
     }
 
-    [TestMethod]
+    [Test]
     public void Dispose_CallsStop()
     {
         _player.Start();
 
         _player.Dispose();
 
-        Assert.IsTrue(_handle.IsDisposed);
+        Assert.That(_handle.IsDisposed, Is.True);
     }
 
-    [TestMethod]
+    [Test]
     public void Dispose_CalledTwice_DoesNotThrow()
     {
         _player.Dispose();
         _player.Dispose();
     }
 
-    [TestMethod]
+    [Test]
     public void FrameReady_OnHandle_IsRelayedToSubscribers()
     {
         _player.Start();
@@ -140,22 +144,22 @@ public sealed class RtspVideoPlayerTests
         using var frame = new VideoFrame(ArrayPool<byte>.Shared.Rent(dataLength), 4, 4, dataLength);
         _handle.RaiseFrameReady(frame);
 
-        Assert.IsNotNull(received);
-        Assert.AreEqual(4, received.Width);
-        Assert.AreEqual(4, received.Height);
+        Assert.That(received, Is.Not.Null);
+        Assert.That(received.Width, Is.EqualTo(4));
+        Assert.That(received.Height, Is.EqualTo(4));
     }
 
-    [TestMethod]
+    [Test]
     public void StatusChanged_RaisedOnStart()
     {
         var statuses = CaptureStatuses();
 
         _player.Start();
 
-        Assert.Contains("Connecting...", statuses);
+        Assert.That(statuses, Does.Contain("Connecting..."));
     }
 
-    [TestMethod]
+    [Test]
     public void StatusChanged_RelayedFromHandleErrorCallback()
     {
         var statuses = CaptureStatuses();
@@ -163,10 +167,10 @@ public sealed class RtspVideoPlayerTests
         _player.Start();
         _factory.CapturedOnError?.Invoke("TLS error");
 
-        Assert.AreEqual("TLS error", statuses[^1]);
+        Assert.That(statuses[^1], Is.EqualTo("TLS error"));
     }
 
-    [TestMethod]
+    [Test]
     public void Playing_RaisesConnectedStatusImmediately()
     {
         var statuses = CaptureStatuses();
@@ -174,10 +178,10 @@ public sealed class RtspVideoPlayerTests
         _player.Start();
         _handle.RaisePlaying();
 
-        Assert.AreEqual("Connected", statuses[^1]);
+        Assert.That(statuses[^1], Is.EqualTo("Connected"));
     }
 
-    [TestMethod]
+    [Test]
     public void ScheduleReconnect_WhileStopped_DoesNothing()
     {
         _player.Start();
@@ -185,10 +189,10 @@ public sealed class RtspVideoPlayerTests
 
         _player.ScheduleReconnect("test reason");
 
-        Assert.AreEqual(1, _handle.PlayCallCount);
+        Assert.That(_handle.PlayCallCount, Is.EqualTo(1));
     }
 
-    [TestMethod]
+    [Test]
     public void ScheduleReconnect_RaisesStatusWithReason()
     {
         _player.Start();
@@ -196,10 +200,10 @@ public sealed class RtspVideoPlayerTests
 
         _player.ScheduleReconnect("Stream ended");
 
-        Assert.AreEqual("Stream ended", statuses[^1]);
+        Assert.That(statuses[^1], Is.EqualTo("Stream ended"));
     }
 
-    [TestMethod]
+    [Test]
     public void ScheduleReconnect_CalledTwice_OnlyFirstTakesEffect()
     {
         _player.Start();
@@ -208,11 +212,11 @@ public sealed class RtspVideoPlayerTests
         _player.ScheduleReconnect("error 1");
         _player.ScheduleReconnect("error 2");
 
-        Assert.HasCount(1, statuses);
-        Assert.AreEqual("error 1", statuses[0]);
+        Assert.That(statuses, Has.Count.EqualTo(1));
+        Assert.That(statuses[0], Is.EqualTo("error 1"));
     }
 
-    [TestMethod]
+    [Test]
     public void EncounteredError_OnHandle_TriggersReconnect()
     {
         _player.Start();
@@ -220,10 +224,10 @@ public sealed class RtspVideoPlayerTests
 
         _handle.RaiseEncounteredError();
 
-        Assert.AreEqual("Playback error", statuses[^1]);
+        Assert.That(statuses[^1], Is.EqualTo("Playback error"));
     }
 
-    [TestMethod]
+    [Test]
     public void EndReached_OnHandle_TriggersReconnect()
     {
         _player.Start();
@@ -231,26 +235,26 @@ public sealed class RtspVideoPlayerTests
 
         _handle.RaiseEndReached();
 
-        Assert.AreEqual("Stream ended", statuses[^1]);
+        Assert.That(statuses[^1], Is.EqualTo("Stream ended"));
     }
 
-    [TestMethod]
+    [Test]
     public void TearDownPlayer_DisposesHandle()
     {
         _player.Start();
 
         _player.TearDownPlayer();
 
-        Assert.IsTrue(_handle.IsDisposed);
+        Assert.That(_handle.IsDisposed, Is.True);
     }
 
-    [TestMethod]
+    [Test]
     public void TearDownPlayer_WhenNoHandleExists_DoesNotThrow()
     {
         _player.TearDownPlayer();
     }
 
-    [TestMethod]
+    [Test]
     public void StartInternal_WhenStopped_DoesNotCreateHandle()
     {
         var factory = new Mock<IVlcPlayerFactory>();
