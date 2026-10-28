@@ -18,3 +18,4 @@ updates:
       nuget-deps:
         patterns:
           - "*"
+
