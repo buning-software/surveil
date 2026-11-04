@@ -57,16 +57,22 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore
 
-      - name: Decode signing certificate
+      - name: Install signing certificate
+        id: certificate
         shell: pwsh
+        env:
+          CERTIFICATE_BASE64: ${{ secrets.CERTIFICATE_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
         run: |
-          $bytes = [Convert]::FromBase64String("${{ secrets.CERTIFICATE_BASE64 }}")
-          [IO.File]::WriteAllBytes("${{ github.workspace }}\cert.pfx", $bytes)
+          $pfx = "${{ github.workspace }}\cert.pfx"
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:CERTIFICATE_BASE64))
+          $securePassword = ConvertTo-SecureString -String $env:CERT_PASSWORD -AsPlainText -Force
+          $cert = Import-PfxCertificate -FilePath $pfx -CertStoreLocation Cert:\CurrentUser\My -Password $securePassword
+          Remove-Item -Path $pfx -Force
+          "THUMBPRINT=$($cert.Thumbprint)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: Build and Package MSIX
         shell: pwsh
-        env:
-          CERT_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
         run: |
           dotnet publish src\Surveil\Surveil.csproj `
             -c Release `
@@ -75,24 +81,26 @@ jobs:
             -p:GenerateAppxPackageOnBuild=true `
             -p:AppxPackageDir="${{ github.workspace }}\AppxPackages\" `
             -p:AppxPackageSigningEnabled=true `
-            -p:PackageCertificateKeyFile="${{ github.workspace }}\cert.pfx" `
-            -p:PackageCertificatePassword=$env:CERT_PASSWORD `
+            -p:PackageCertificateThumbprint=${{ steps.certificate.outputs.THUMBPRINT }} `
+            -p:AppxPackageSigningTimestampDigestAlgorithm=SHA256 `
+            -p:AppxPackageSigningTimestampServerUrl=http://timestamp.digicert.com `
             -p:AppxBundle=Never
 
       - name: Export public certificate
         if: matrix.platform == 'x64'
         shell: pwsh
-        env:
-          CERT_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
         run: |
-          $securePassword = ConvertTo-SecureString -String $env:CERT_PASSWORD -AsPlainText -Force
-          $cert = Get-PfxCertificate -FilePath "${{ github.workspace }}\cert.pfx" -Password $securePassword
+          $cert = Get-Item "Cert:\CurrentUser\My\${{ steps.certificate.outputs.THUMBPRINT }}"
           Export-Certificate -Cert $cert -FilePath "${{ github.workspace }}\Surveil.cer" | Out-Null
 
       - name: Remove signing certificate
         if: always()
         shell: pwsh
-        run: Remove-Item -Path "${{ github.workspace }}\cert.pfx" -Force -ErrorAction SilentlyContinue
+        run: |
+          Remove-Item -Path "${{ github.workspace }}\cert.pfx" -Force -ErrorAction SilentlyContinue
+          if ("${{ steps.certificate.outputs.THUMBPRINT }}") {
+            Remove-Item -Path "Cert:\CurrentUser\My\${{ steps.certificate.outputs.THUMBPRINT }}" -Force -ErrorAction SilentlyContinue
+          }
 
       - name: Rename MSIX with platform suffix
         id: rename
