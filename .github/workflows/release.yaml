@@ -9,6 +9,7 @@ permissions:
 
 jobs:
   test:
+    name: Build & Test
     uses: ./.github/workflows/build-and-test.yaml
 
   release:
