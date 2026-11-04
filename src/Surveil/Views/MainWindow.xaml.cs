@@ -108,6 +108,7 @@ public sealed partial class MainWindow
         if (e.Action == NotifyCollectionChangedAction.Reset)
         {
             CamerasGroup.MenuItems.Clear();
+            CamerasGroup.IsExpanded = false;
             return;
         }
 
@@ -123,6 +124,8 @@ public sealed partial class MainWindow
             ToolTipService.SetToolTip(item, camera.Name);
             CamerasGroup.MenuItems.Add(item);
         }
+
+        CamerasGroup.IsExpanded = CamerasGroup.MenuItems.Count > 0;
     }
 
     private void NavView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
