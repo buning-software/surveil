@@ -17,7 +17,6 @@
 
   <ItemGroup>
     <AssemblyMetadata Include="SurveilBinDirectory" Value="$(SurveilBinDirectory)" />
-    <AssemblyAttribute Include="WinUia.NUnit.UiTestAttribute" />
   </ItemGroup>
 
   <ItemGroup>
@@ -27,6 +26,5 @@
     <PackageReference Include="NUnit.Analyzers" />
     <PackageReference Include="GitHubActionsTestLogger" />
     <PackageReference Include="WinUia" />
-    <PackageReference Include="WinUia.NUnit" />
   </ItemGroup>
 </Project>

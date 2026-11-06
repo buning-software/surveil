@@ -2,7 +2,6 @@ using System;
 using System.IO;
 using NUnit.Framework;
 using Surveil.UiTests.Application;
-using static WinUia.NUnit.UiAssertions;
 
 namespace Surveil.UiTests.Tests;
 

@@ -7,8 +7,7 @@
     <PackageVersion Include="NUnit" Version="5.0.0" />
     <PackageVersion Include="NUnit3TestAdapter" Version="6.3.1" />
     <PackageVersion Include="NUnit.Analyzers" Version="4.15.0" />
-    <PackageVersion Include="WinUia" Version="0.1.1" />
-    <PackageVersion Include="WinUia.NUnit" Version="0.1.1" />
+    <PackageVersion Include="WinUia" Version="0.3.0" />
     <PackageVersion Include="GitHubActionsTestLogger" Version="3.0.5" />
     <PackageVersion Include="Moq" Version="4.21.0" />
     <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.12" />
