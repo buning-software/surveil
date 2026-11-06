@@ -19,17 +19,17 @@
     </Project>
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/Surveil.Core.Tests/Surveil.Core.Tests.csproj">
+    <Project Path="tests/Surveil.Core.UnitTests/Surveil.Core.UnitTests.csproj">
       <Platform Solution="*|ARM64" Project="ARM64" />
       <Platform Solution="*|x64" Project="x64" />
       <Platform Solution="*|x86" Project="x86" />
     </Project>
-    <Project Path="tests/Surveil.Tests/Surveil.UiTests.csproj" Id="e0b4d677-555c-454c-96ed-b3a8c5075f62">
+    <Project Path="tests/Surveil.UiTests/Surveil.UiTests.csproj" Id="e0b4d677-555c-454c-96ed-b3a8c5075f62">
       <Platform Solution="*|ARM64" Project="ARM64" />
       <Platform Solution="*|x64" Project="x64" />
       <Platform Solution="*|x86" Project="x86" />
     </Project>
-    <Project Path="tests/Surveil.Unifi.Tests/Surveil.Unifi.Tests.csproj">
+    <Project Path="tests/Surveil.Unifi.UnitTests/Surveil.Unifi.UnitTests.csproj">
       <Platform Solution="*|ARM64" Project="ARM64" />
       <Platform Solution="*|x64" Project="x64" />
       <Platform Solution="*|x86" Project="x86" />
