@@ -62,7 +62,7 @@ public class SettingsPageTests : SurveilFixture
     }
 
     [Test]
-    public void SelectingUnifiProtect_ShowsUnifiConnection()
+    public void UnifiProtect_ShowsConnection()
     {
         _settings.SelectProvider("UniFi Protect");
 
@@ -75,7 +75,7 @@ public class SettingsPageTests : SurveilFixture
     }
 
     [Test]
-    public void SelectingUnifiProtect_WithoutBaseUrl_ShowsBaseUrlRequired()
+    public void UnifiWithoutBaseUrl_ShowsRequired()
     {
         _settings.SelectProvider("UniFi Protect");
 
@@ -88,7 +88,7 @@ public class SettingsPageTests : SurveilFixture
     }
 
     [Test]
-    public void EnteringRelativeBaseUrl_ShowsBaseUrlInvalid()
+    public void RelativeBaseUrl_ShowsInvalid()
     {
         _settings.SelectProvider("UniFi Protect");
 
@@ -99,7 +99,7 @@ public class SettingsPageTests : SurveilFixture
     }
 
     [Test]
-    public void EnteringBaseUrlWithoutApiKey_ShowsApiKeyRequired()
+    public void BaseUrlWithoutApiKey_ShowsRequired()
     {
         _settings.SelectProvider("UniFi Protect");
 
@@ -110,7 +110,7 @@ public class SettingsPageTests : SurveilFixture
     }
 
     [Test]
-    public void EnteringValidUnifiConnection_ClearsErrorAndSavesToIsolatedDataDirectory()
+    public void ValidUnifiConnection_SavesSettings()
     {
         _settings.SelectProvider("UniFi Protect");
 

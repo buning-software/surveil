@@ -3,7 +3,12 @@ name: Build & Test
 on:
   pull_request:
   workflow_dispatch:
-  workflow_call: {}
+  workflow_call:
+    inputs:
+      record-all-tests:
+        description: Upload the screen recording of every UI test, not only failed ones
+        type: boolean
+        default: false
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -81,6 +86,16 @@ jobs:
         with:
           name: build-output
 
+      - name: Ensure ffmpeg
+        shell: pwsh
+        run: |
+          if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) {
+            choco install ffmpeg --no-progress -y
+          }
+          $ffmpeg = (Get-Command ffmpeg).Source
+          Write-Host "ffmpeg: $ffmpeg"
+          "WINUIA_FFMPEG=$ffmpeg" >> $env:GITHUB_ENV
+
       - name: UI test
         run: >-
           dotnet test --no-build --configuration Release -p:Platform=x64 --filter "FullyQualifiedName~.UiTests."
@@ -92,3 +107,23 @@ jobs:
         with:
           name: ui-test-results
           path: TestResults
+
+      - name: Collect recordings
+        if: always()
+        shell: pwsh
+        env:
+          KIND: ${{ inputs.record-all-tests && 'All' || 'Failed' }}
+        run: |
+          New-Item -ItemType Directory -Force recordings | Out-Null
+          Get-ChildItem tests -Recurse -Directory -Filter $env:KIND -ErrorAction SilentlyContinue |
+            Where-Object { $_.Parent.Name -eq 'Recordings' } |
+            ForEach-Object { Copy-Item (Join-Path $_.FullName '*') recordings -Force }
+
+      - name: Upload recordings
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ui-test-recordings
+          path: recordings
+          if-no-files-found: ignore
+          retention-days: 14

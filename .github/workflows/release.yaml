@@ -11,6 +11,8 @@ jobs:
   test:
     name: Build & Test
     uses: ./.github/workflows/build-and-test.yaml
+    with:
+      record-all-tests: true
 
   release:
     needs: test

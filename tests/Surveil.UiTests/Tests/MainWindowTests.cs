@@ -44,7 +44,7 @@ public sealed class MainWindowTests : SurveilFixture
     }
 
     [Test]
-    public void CloseButton_HidesWindowAndKeepsRunningInTray()
+    public void CloseButton_HidesToTray()
     {
         Assert.That(App.IsMainWindowShown, Is.True);
 
