@@ -26,5 +26,6 @@
     <PackageReference Include="NUnit.Analyzers" />
     <PackageReference Include="GitHubActionsTestLogger" />
     <PackageReference Include="WinUia" />
+    <PackageReference Include="WinUia.Recording" />
   </ItemGroup>
 </Project>

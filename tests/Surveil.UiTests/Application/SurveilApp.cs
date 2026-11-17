@@ -2,8 +2,11 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using NUnit.Framework;
+using NUnit.Framework.Interfaces;
 using WinUia;
 using WinUia.Models;
+using WinUia.Recording;
 
 namespace Surveil.UiTests.Application;
 
@@ -29,7 +32,15 @@ public sealed class SurveilApp : App
         ? overridden
         : FindBuiltExecutable();
 
-    protected override AppLaunchOptions DefaultOptions => new() { ShowPointer = true };
+    protected override AppLaunchOptions DefaultOptions => new()
+    {
+        ShowPointer = true,
+        Recording = new RecordingOptions
+        {
+            FileName = () => TestContext.CurrentContext.Test.Name,
+            Failed = () => TestContext.CurrentContext.Result.Outcome.Status is TestStatus.Failed or TestStatus.Inconclusive,
+        },
+    };
 
     public SettingsPage OpenSettings()
     {
